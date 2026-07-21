@@ -305,7 +305,35 @@ $("closeCloudSetupBtn").onclick=()=>$("cloudSetupDialog").close();
 $("cloudSetupForm").addEventListener("submit",e=>{e.preventDefault();setAdminSettings(readAdminSettings());$("cloudSetupDialog").close();updateDriveUi();alert("Admin settings saved. New documents and loan numbers will use these settings.");});
 $("resetAdminBtn").onclick=()=>{if(!confirm("Restore the default BearCrest settings?"))return;localStorage.setItem(ADMIN_SETTINGS_KEY,JSON.stringify(ADMIN_DEFAULTS));fillAdminSettings();};
 $("testCloudBtn").onclick=async()=>{try{setAdminSettings(readAdminSettings());const out=await cloudCall("ping");alert(out.message||"Connection successful.");}catch(e){alert(e.message);}};
-$("applicationBtn").onclick=()=>window.open(getCloudSettings().formUrl||DEFAULT_FORM_URL,"_blank");
+function bcfApplicationUrl(){
+  return String(getCloudSettings().formUrl||DEFAULT_FORM_URL||"").trim();
+}
+function bcfApplicationMessage(){
+  return `Hi! Please complete the BCF Application here: ${bcfApplicationUrl()}`;
+}
+function openBcfApplicationShare(){
+  const dialog=$("bcfApplicationDialog");
+  if(!bcfApplicationUrl())return alert("Add the application link in Settings first.");
+  if(dialog?.showModal)dialog.showModal();
+}
+function setBcfApplicationStatus(message){
+  const el=$("bcfApplicationStatus");
+  if(!el)return;
+  el.textContent=message;
+  clearTimeout(setBcfApplicationStatus.timer);
+  setBcfApplicationStatus.timer=setTimeout(()=>{el.textContent="";},2600);
+}
+async function copyBcfApplicationLink(){
+  const url=bcfApplicationUrl();
+  try{
+    await navigator.clipboard.writeText(url);
+    setBcfApplicationStatus("BCF Application link copied.");
+  }catch{
+    const area=document.createElement("textarea");area.value=url;area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);area.select();document.execCommand("copy");area.remove();
+    setBcfApplicationStatus("BCF Application link copied.");
+  }
+}
+$("applicationBtn").onclick=openBcfApplicationShare;
 $("createDriveFolderBtn").onclick=async()=>{try{const b=$("createDriveFolderBtn");b.disabled=true;b.textContent="Creating...";await ensureDriveFolder();await renderClientDocuments();alert("Google Drive folder is ready.");}catch(e){alert(e.message);}finally{$("createDriveFolderBtn").disabled=false;$("createDriveFolderBtn").textContent="Create / Connect Drive Folder";}};
 $("openDriveFolderBtn").onclick=()=>{const l=loans.find(x=>x.loanId===$("loanId").value);if(l?.driveFolderUrl)window.open(l.driveFolderUrl,"_blank");};
 
@@ -1689,6 +1717,17 @@ if($("mobileContactsAction"))$("mobileContactsAction").onclick=()=>v6ShowView("c
 if($("mobileCameraInput"))$("mobileCameraInput").onchange=e=>v6HandleCameraFile(e.target.files?.[0]);
 if($("mobileGlobalSearch"))$("mobileGlobalSearch").oninput=v6RenderGlobalSearch;
 if($("mobileAvatarBtn"))$("mobileAvatarBtn").onclick=()=>$("cloudSetupBtn").click();
+if($("fieldApplicationBtn"))$("fieldApplicationBtn").onclick=openBcfApplicationShare;
+if($("closeBcfApplicationBtn"))$("closeBcfApplicationBtn").onclick=()=>$("bcfApplicationDialog").close();
+if($("textBcfApplicationBtn"))$("textBcfApplicationBtn").onclick=()=>{location.href=`sms:?&body=${encodeURIComponent(bcfApplicationMessage())}`;};
+if($("emailBcfApplicationBtn"))$("emailBcfApplicationBtn").onclick=()=>{location.href=`mailto:?subject=${encodeURIComponent("BCF Application")}&body=${encodeURIComponent(bcfApplicationMessage())}`;};
+if($("shareBcfApplicationBtn"))$("shareBcfApplicationBtn").onclick=async()=>{
+  const data={title:"BCF Application",text:"Please complete the BCF Application.",url:bcfApplicationUrl()};
+  if(navigator.share){try{await navigator.share(data);}catch(e){if(e.name!=="AbortError")setBcfApplicationStatus("Sharing was not available.");}}
+  else await copyBcfApplicationLink();
+};
+if($("copyBcfApplicationBtn"))$("copyBcfApplicationBtn").onclick=copyBcfApplicationLink;
+if($("openBcfApplicationBtn"))$("openBcfApplicationBtn").onclick=()=>window.open(bcfApplicationUrl(),"_blank");
 if($("fieldCallBtn"))$("fieldCallBtn").onclick=()=>v6OpenPicker("call","Call a borrower");
 if($("fieldTextBtn"))$("fieldTextBtn").onclick=()=>v6OpenPicker("text","Text a borrower");
 if($("fieldMapBtn"))$("fieldMapBtn").onclick=()=>v6OpenPicker("map","Open property directions");

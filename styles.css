@@ -358,3 +358,29 @@ body{overflow-y:auto}
   .mobile-bottom-nav button{cursor:pointer!important}
 }
 @media(min-width:801px){#mobileConnectionStatus{display:none}}
+
+
+/* ===== BCF Application quick-share + mobile safe-area patch ===== */
+.field-tools .field-application-tool{grid-column:1/-1;background:#073f2c;color:#e7cd78;border-color:#073f2c}
+.field-tools .field-application-tool span{color:#fff}
+.bcf-application-dialog{border:0;border-radius:18px;padding:0;width:min(460px,calc(100vw - 24px));box-shadow:0 24px 70px #0005}
+.bcf-application-dialog::backdrop{background:#001b1288;backdrop-filter:blur(2px)}
+.bcf-application-wrap{padding:20px;background:#f6f8f7}
+.bcf-application-wrap .dialog-header{margin-bottom:8px}
+.bcf-application-wrap .dialog-header small{display:block;color:#987315;font-size:.65rem;font-weight:850;letter-spacing:.08em}
+.bcf-application-wrap .dialog-header h2{margin:2px 0 0;color:#073f2c}
+.bcf-application-wrap>p{margin:4px 0 16px;color:#5b6d66;line-height:1.45}
+.bcf-application-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bcf-application-actions button{min-height:76px;border:1px solid #d5dfda;border-radius:13px;background:#fff;color:#073f2c;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.bcf-application-actions button b{font-size:1.35rem}
+.bcf-application-actions button:last-child{grid-column:1/-1;background:#073f2c;color:#fff;border-color:#073f2c}
+.bcf-application-status{min-height:22px;padding-top:10px;text-align:center;color:#075a40;font-weight:750;font-size:.8rem}
+.dialog-actions{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+@media(max-width:800px){
+  dialog:not(.mobile-picker-dialog){max-height:calc(100dvh - 20px);overflow:auto;margin:auto}
+  .bcf-application-dialog{width:calc(100vw - 18px);margin:auto auto calc(78px + env(safe-area-inset-bottom))}
+  .bcf-application-wrap{padding:16px 14px max(18px,env(safe-area-inset-bottom))}
+  .bcf-application-actions button{min-height:70px;touch-action:manipulation}
+  .operations-dialog,.setup-wrap{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+  .dialog-actions{position:sticky;bottom:0;z-index:5;background:inherit;margin-left:-4px;margin-right:-4px;padding-top:10px;padding-bottom:calc(12px + env(safe-area-inset-bottom));box-shadow:0 -8px 18px #0000000d}
+}

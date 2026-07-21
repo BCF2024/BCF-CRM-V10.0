@@ -80,7 +80,7 @@
           <p id="viewSubtitle">Business-purpose lending operations dashboard</p>
         </div>
         <div class="top-actions">
-          <button id="applicationBtn">Open Application</button>
+          <button id="applicationBtn">BCF Application</button>
           <button id="syncApplicationsBtn">Sync New Applications</button>
           <button id="exportBtn">Export</button>
           <label class="import-label">Import<input id="importFile" type="file" accept=".json" hidden /></label>
@@ -127,6 +127,7 @@
           <section class="mobile-section-card">
             <div class="mobile-section-heading"><div><small>QUICK TOOLS</small><h3>Field Mode</h3></div></div>
             <div class="field-tools">
+              <button id="fieldApplicationBtn" class="field-application-tool">▤<span>BCF Application</span></button>
               <button id="fieldCallBtn">☎<span>Call Borrower</span></button>
               <button id="fieldTextBtn">✉<span>Text Borrower</span></button>
               <button id="fieldMapBtn">⌖<span>Property Map</span></button>
@@ -645,6 +646,25 @@ getfunded@bearcrest.com</textarea></label>
     <button data-mobile-nav="tasks"><b>☑</b><span>Tasks</span></button>
     <button data-mobile-nav="contacts"><b>♙</b><span>Contacts</span></button>
   </nav>
+
+
+  <dialog id="bcfApplicationDialog" class="bcf-application-dialog">
+    <div class="bcf-application-wrap">
+      <div class="dialog-header">
+        <div><small>QUICK SHARE</small><h2>BCF Application</h2></div>
+        <button type="button" id="closeBcfApplicationBtn" class="close-btn" aria-label="Close">×</button>
+      </div>
+      <p>Send the application to anyone. Choose how you want to share it, then select or enter the recipient on your phone.</p>
+      <div class="bcf-application-actions">
+        <button type="button" id="textBcfApplicationBtn"><b>✉</b><span>Text Application</span></button>
+        <button type="button" id="emailBcfApplicationBtn"><b>✉</b><span>Email Application</span></button>
+        <button type="button" id="shareBcfApplicationBtn"><b>↗</b><span>Share</span></button>
+        <button type="button" id="copyBcfApplicationBtn"><b>▣</b><span>Copy Link</span></button>
+        <button type="button" id="openBcfApplicationBtn"><b>▤</b><span>Open Application</span></button>
+      </div>
+      <div id="bcfApplicationStatus" class="bcf-application-status" role="status" aria-live="polite"></div>
+    </div>
+  </dialog>
 
   <dialog id="mobileLoanPickerDialog" class="mobile-picker-dialog">
     <div class="mobile-picker-head"><div><small>FIELD MODE</small><h3 id="mobilePickerTitle">Choose a loan</h3></div><button id="closeMobilePicker" type="button">×</button></div>

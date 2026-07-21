@@ -1809,3 +1809,97 @@ renderLoansPage();renderCommunicationCenter();
     shell.classList.add("sidebar-collapsed");
   }
 })();
+
+/* ===== BearCrest V6.3 dedicated mobile usability pass ===== */
+(function(){
+  const stageNames=["Lead","Application","Submitted","Processing","Approved","Closing","Closed"];
+
+  function closeMobileDrawer(){
+    document.querySelector(".sidebar")?.classList.remove("mobile-open");
+    $("mobileNavBackdrop")?.classList.add("hidden");
+    document.body.classList.remove("mobile-menu-open");
+  }
+  function openMobileDrawer(){
+    document.querySelector(".sidebar")?.classList.add("mobile-open");
+    $("mobileNavBackdrop")?.classList.remove("hidden");
+    document.body.classList.add("mobile-menu-open");
+    const sidebar=document.querySelector(".sidebar");
+    if(sidebar)sidebar.scrollTop=0;
+  }
+
+  const menuBtn=$("mobileMenuBtn");
+  if(menuBtn){
+    menuBtn.onclick=null;
+    menuBtn.addEventListener("click",e=>{
+      e.preventDefault();e.stopPropagation();
+      document.querySelector(".sidebar")?.classList.contains("mobile-open")?closeMobileDrawer():openMobileDrawer();
+    });
+  }
+  $("mobileNavBackdrop")?.addEventListener("click",closeMobileDrawer);
+  document.querySelectorAll(".side-nav .nav-item").forEach(btn=>btn.addEventListener("click",()=>{if(v6IsMobile())closeMobileDrawer();}));
+
+  /* Reliable tap handling for the fixed bottom navigation. */
+  document.querySelector(".mobile-bottom-nav")?.addEventListener("click",e=>{
+    const button=e.target.closest("button");
+    if(!button)return;
+    e.preventDefault();e.stopPropagation();
+    if(button.id==="mobileBottomAdd"){
+      openAdd();
+      return;
+    }
+    const destination=button.dataset.mobileNav;
+    if(destination)v6ShowView(destination);
+  },true);
+
+  if($("mobileQuickAddBtn")){
+    $("mobileQuickAddBtn").style.visibility="visible";
+    $("mobileQuickAddBtn").onclick=e=>{e.preventDefault();openAdd();};
+  }
+  if($("mobileNewLoanAction"))$("mobileNewLoanAction").onclick=e=>{e.preventDefault();openAdd();};
+
+  function addMobileStageControls(){
+    if(!v6IsMobile())return;
+    document.querySelectorAll("#boardPanel .loan-card").forEach(card=>{
+      if(card.querySelector(".mobile-stage-select"))return;
+      const loan=loans.find(item=>item.loanId===card.dataset.id);
+      if(!loan)return;
+      const select=document.createElement("select");
+      select.className="mobile-stage-select";
+      select.setAttribute("aria-label","Move loan to another stage");
+      select.innerHTML=stageNames.map(stage=>`<option value="${stage}" ${stage===loan.status?"selected":""}>Move to: ${stage}</option>`).join("");
+      select.addEventListener("click",event=>event.stopPropagation());
+      select.addEventListener("pointerdown",event=>event.stopPropagation());
+      select.addEventListener("change",event=>{
+        event.stopPropagation();
+        const newStatus=select.value;
+        if(newStatus===loan.status)return;
+        loan.status=newStatus;
+        save();
+        render();
+        setTimeout(()=>{
+          const target=document.querySelector(`.board-column[data-status="${CSS.escape(newStatus)}"]`);
+          target?.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
+        },30);
+      });
+      card.appendChild(select);
+    });
+  }
+
+  const previousRenderBoardV63=renderBoard;
+  renderBoard=function(list){
+    previousRenderBoardV63(list);
+    addMobileStageControls();
+  };
+
+  const previousV6ShowView=v6ShowView;
+  v6ShowView=function(name){
+    previousV6ShowView(name);
+    closeMobileDrawer();
+    if(name==="pipeline")setTimeout(addMobileStageControls,20);
+  };
+
+  window.addEventListener("orientationchange",()=>setTimeout(()=>{
+    closeMobileDrawer();
+    if(document.querySelector("#pipelineView.active-view"))addMobileStageControls();
+  },120));
+})();

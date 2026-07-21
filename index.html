@@ -1,6 +1,6 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#123f34"><title>BearCrest CRM 9.3</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css"></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#123f34"><title>BearCrest CRM 9.3.1</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css"></head><body>
 <div class="app" id="app">
-<aside class="sidebar" id="sidebar"><div class="brand-card"><img src="bcf-logo.png" onerror="this.style.display='none'" alt="BearCrest logo"><div class="brand-copy"><strong>BEARCREST</strong><span>CRM 9.3</span></div><button id="collapseBtn" aria-label="Collapse sidebar">☰</button></div>
+<aside class="sidebar" id="sidebar"><div class="brand-card"><img src="bcf-logo.png" onerror="this.style.display='none'" alt="BearCrest logo"><div class="brand-copy"><strong>BEARCREST</strong><span>CRM 9.3.1</span></div><button id="collapseBtn" aria-label="Collapse sidebar">☰</button></div>
 <nav>
 <button class="nav active" data-view="dashboard"><span>⌂</span><b>Dashboard</b></button>
 <button class="nav" data-view="loans"><span>▣</span><b>Loans</b></button>
@@ -21,6 +21,35 @@
 <section class="view" id="documentsView"><article class="panel"><h2>Loan Documents</h2><p>Open a loan from the Loans page to view or upload its Google Drive documents.</p><div id="documentSummary"></div></article></section>
 <section class="view" id="settingsView"><article class="panel settings-card"><h2>Google Apps Script Connection</h2><label>Web App URL<input id="webAppUrl" placeholder="https://script.google.com/macros/s/.../exec"></label><div class="actions"><button id="testConnectionBtn">Test Connection</button><button class="primary" id="saveSettingsBtn">Save</button></div><p id="connectionResult"></p></article></section>
 </main></div>
-<dialog id="loanDialog"><form id="loanForm"><div class="dialog-head"><div><small>BEARCREST CRM</small><h2 id="dialogTitle">New Loan</h2></div><button type="button" id="closeDialog">×</button></div><input type="hidden" id="recordId"><div class="form-grid">
-<label>Loan Number<input id="loanNumber" required></label><label>Date Received<input id="dateReceived" type="date"></label><label>Borrower Name<input id="borrowerName" required></label><label>Entity Name<input id="entityName"></label><label>Phone<input id="phone"></label><label>Email<input id="email" type="email"></label><label>Program<select id="program"><option>Fix & Flip</option><option>DSCR Purchase</option><option>DSCR Refinance</option><option>Ground-Up Construction</option><option>Bridge</option></select></label><label>Property Address<input id="propertyAddress"></label><label>Loan Amount<input id="loanAmount" type="number"></label><label>Purchase Price<input id="purchasePrice" type="number"></label><label>Rehab Budget<input id="rehabBudget" type="number"></label><label>ARV<input id="arv" type="number"></label><label>Status<select id="status"><option>New Lead</option><option>Reviewing</option><option>Submitted</option><option>Approved</option><option>Closing</option><option>Closed</option><option>Dead</option></select></label><label>Assigned Lender<select id="lender"></select></label><label>Next Follow-up<input id="nextFollowUp" type="date"></label><label>Target Closing<input id="targetClosing" type="date"></label><label class="wide">Missing Documents<input id="missingDocs"></label><label class="wide">Notes<textarea id="notes" rows="4"></textarea></label></div><div class="dialog-actions"><button type="button" id="deleteBtn" class="danger">Delete</button><span></span><button type="button" id="cancelBtn">Cancel</button><button class="primary" id="saveLoanBtn">Save Loan</button></div></form></dialog>
+<dialog id="loanDialog" class="classic-loan-dialog"><form id="loanForm">
+<div class="classic-form-head"><div class="classic-brand"><img src="bcf-logo.png" onerror="this.style.display='none'" alt="BearCrest Funding logo"><div><strong>BEARCREST CRM</strong><small>Investment Real Estate Financing</small></div></div><button type="button" id="closeDialog" aria-label="Close">×</button></div>
+<div class="classic-title-row"><div><a href="#" id="backToLoans">← Back to Loans</a><h2 id="dialogTitle">New Loan</h2></div><span class="classic-version">Version 9.3.1</span></div>
+<input type="hidden" id="recordId">
+<div class="classic-form-grid">
+<div class="classic-column">
+<label>Borrower Name<input id="borrowerName" required></label>
+<label>Entity Name<input id="entityName"></label>
+<label>Phone<input id="phone"></label>
+<label>Email<input id="email" type="email"></label>
+<label>Property Address<input id="propertyAddress"></label>
+<label>Loan Program<select id="program"><option>Fix & Flip</option><option>DSCR Purchase</option><option>DSCR Refinance</option><option>Ground-Up Construction</option><option>Bridge</option></select></label>
+<label>Loan Amount<input id="loanAmount" type="number"></label>
+<label>Purchase Price<input id="purchasePrice" type="number"></label>
+<label>Rehab Budget<input id="rehabBudget" type="number"></label>
+<label>ARV<input id="arv" type="number"></label>
+<label>Target Closing<input id="targetClosing" type="date"></label>
+</div>
+<div class="classic-column">
+<label>Loan Number<input id="loanNumber" required></label>
+<label>Date Received<input id="dateReceived" type="date"></label>
+<label>Assigned Lender<select id="lender"></select></label>
+<label>Status<select id="status"><option>New Lead</option><option>Reviewing</option><option>Submitted</option><option>Approved</option><option>Closing</option><option>Closed</option><option>Dead</option></select></label>
+<label>Next Follow Up<input id="nextFollowUp" type="date"></label>
+<label>Missing Documents<input id="missingDocs"></label>
+<label class="notes-field">Notes<textarea id="notes" rows="9" placeholder="Add notes here..."></textarea></label>
+</div>
+</div>
+<div class="classic-quick-actions"><button type="button" id="callBorrower"><span>☎</span>CALL</button><button type="button" id="textBorrower"><span>◉</span>TEXT</button><button type="button" id="emailBorrower"><span>✉</span>EMAIL</button><button type="button" id="directionsBorrower"><span>⌖</span>DIRECTIONS</button></div>
+<div class="classic-footer-actions"><button type="button" id="deleteBtn" class="danger">Delete</button><span></span><button type="button" id="cancelBtn">Cancel</button><button class="primary" id="saveLoanBtn">Save Loan</button></div>
+</form></dialog>
 <script src="app.js"></script></body></html>

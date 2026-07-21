@@ -1,24 +1,14 @@
-BEARCREST CRM VERSION 9.3
+BearCrest CRM Version 9.3.1 — Original Layout Restoration
 
-UPLOAD TO GITHUB ROOT:
-- index.html
-- styles.css
-- app.js
-- manifest.json
-- service-worker.js
-- your existing bcf-logo.png
-
-IMPORTANT:
-1. Keep your current Version 8.3 Google Apps Script backend deployed.
-2. Open CRM > Settings and paste the Apps Script Web App URL ending in /exec.
-3. Click Test Connection, then Save.
-4. The Communications page opens your device's email application using mailto. Incoming Gmail synchronization requires an additional Gmail authorization/backend connection and is not enabled in this package.
-
-VERSION 9.3 FIXES:
+This release preserves the familiar BearCrest loan form and visual structure while retaining the requested upgrades:
 - Loans and Pipeline are separate pages.
-- Sidebar is collapsible and no longer requires horizontal dragging.
-- Main tables and pipeline scroll horizontally only inside their own content area.
-- Calendar displays follow-ups and target closings.
-- Communications includes borrower selection, compose, local drafts, and communication history.
-- Header/logo presentation is polished while preserving bcf-logo.png.
-- Responsive mobile/foldable navigation.
+- Sidebar is fixed-width and collapsible.
+- Main tables and pipeline boards scroll inside their own content area.
+- Calendar includes follow-ups and target closings.
+- Communications includes borrower selection, drafts, email-app launch, and local communication history.
+- The loan form is restored to the familiar two-column layout with Call, Text, Email, and Directions buttons.
+- Existing Google Apps Script Version 8.3 backend remains compatible.
+
+IMPORTANT
+Place your existing bcf-logo.png file in the same folder as index.html before publishing to GitHub.
+The email page currently opens the user's email application. Full Gmail/Google Workspace inbox synchronization requires an Apps Script/Gmail authorization upgrade.

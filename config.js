@@ -8,6 +8,6 @@
   appsScriptUrl: "https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
 */
 window.BEARCREST_CONFIG = Object.freeze({
-  appsScriptUrl: "https://script.google.com/macros/library/d/1Tp0NH1uNBLd9y42VZ1G_K5xvq1aHFLQpNv_RlWyvzxhxllDmuevWsug5/3"
+  appsScriptUrl: "https://script.google.com/macros/s/AKfycbysco3_58G625JCTFsNCsnEmKAfd0Gh9YH2IPs4eD9SGm72nrUBbsfRXSpZ57vliOietQ/exec"
 });
 

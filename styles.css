@@ -341,3 +341,20 @@ body{overflow-y:auto}
 }
 .shared-config-note{margin:8px 0 0;color:#52645d;font-size:.9rem;line-height:1.45}
 #cloudEndpoint[readonly]{background:#edf4ef;color:#173f35;font-weight:650;cursor:default}
+
+
+/* ===== BearCrest V6.5 mobile controls + connection indicator ===== */
+.connection-status-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid #ccd8d2;border-radius:999px;background:#fff;color:#52645d;padding:7px 10px;font-size:.72rem;font-weight:800;white-space:nowrap}
+.connection-status-pill i{display:block;width:9px;height:9px;border-radius:50%;background:#c18a19;box-shadow:0 0 0 3px rgba(193,138,25,.14)}
+.connection-status-pill.is-connected{color:#0b6548;border-color:#b9d9ca;background:#f1faf6}.connection-status-pill.is-connected i{background:#16a364;box-shadow:0 0 0 3px rgba(22,163,100,.16)}
+.connection-status-pill.is-disconnected{color:#9a2f2f;border-color:#e5bcbc;background:#fff5f5}.connection-status-pill.is-disconnected i{background:#d54444;box-shadow:0 0 0 3px rgba(213,68,68,.14)}
+.connection-status-pill.is-checking{color:#7c641e;border-color:#e6d59d;background:#fffaf0}
+@media(max-width:800px){
+  .mobile-appbar{grid-template-columns:44px minmax(0,1fr) auto auto!important;gap:7px!important}
+  #mobileConnectionStatus{padding:6px 8px;font-size:.64rem;max-width:94px;overflow:hidden}
+  #mobileConnectionStatus span{overflow:hidden;text-overflow:ellipsis}
+  #desktopConnectionStatus{display:none}
+  .mobile-bottom-nav{z-index:1000!important}
+  .mobile-bottom-nav button{cursor:pointer!important}
+}
+@media(min-width:801px){#mobileConnectionStatus{display:none}}

@@ -27,7 +27,8 @@
 
   <div class="mobile-appbar">
     <button id="mobileMenuBtn" aria-label="Open navigation">☰</button>
-    <div><strong>BearCrest Mobile</strong><small>Version 6.1</small></div>
+    <div><strong>BearCrest Mobile</strong><small>Version 6.5</small></div>
+    <button id="mobileConnectionStatus" class="connection-status-pill is-checking" type="button" aria-label="Connection status" title="Open connection settings"><i></i><span>Checking</span></button>
     <button id="mobileQuickAddBtn" aria-label="Add loan">＋</button>
   </div>
   <div id="mobileNavBackdrop" class="mobile-nav-backdrop hidden"></div>
@@ -85,6 +86,7 @@
           <label class="import-label">Import<input id="importFile" type="file" accept=".json" hidden /></label>
           <label class="import-label hidden">Import CSV<input id="csvFile" type="file" accept=".csv,text/csv" hidden /></label>
           <button id="templateBtn" class="hidden">Template</button>
+          <button id="desktopConnectionStatus" class="connection-status-pill is-checking" type="button" aria-label="Connection status" title="Open connection settings"><i></i><span>Checking</span></button>
           <button id="cloudSetupBtn">Settings</button>
           <button id="logoutBtn" class="avatar-btn">JV</button>
         </div>
@@ -635,10 +637,6 @@ getfunded@bearcrest.com</textarea></label>
   </dialog>
 
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
-  <script src="auth.js"></script>
-
 
   <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
     <button class="active" data-mobile-nav="mobilehome"><b>⌂</b><span>Home</span></button>
@@ -653,6 +651,9 @@ getfunded@bearcrest.com</textarea></label>
     <input id="mobilePickerSearch" placeholder="Search borrower or property..." />
     <div id="mobilePickerList" class="mobile-picker-list"></div>
   </dialog>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script src="auth.js"></script>
   <script>
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(console.error));

@@ -1905,3 +1905,70 @@ renderLoansPage();renderCommunicationCenter();
     if(document.querySelector("#pipelineView.active-view"))addMobileStageControls();
   },120));
 })();
+
+
+/* ===== BearCrest V6.5 reliable mobile navigation + live connection status ===== */
+(function(){
+  function openConnectionSettings(){
+    try{ fillAdminSettings(); }catch(_e){}
+    const dialog=document.getElementById("cloudSetupDialog");
+    if(dialog && typeof dialog.showModal==="function" && !dialog.open) dialog.showModal();
+  }
+  function setConnectionIndicator(state,label){
+    ["mobileConnectionStatus","desktopConnectionStatus"].forEach(id=>{
+      const el=document.getElementById(id); if(!el)return;
+      el.classList.remove("is-connected","is-disconnected","is-checking");
+      el.classList.add(state==="connected"?"is-connected":state==="disconnected"?"is-disconnected":"is-checking");
+      const span=el.querySelector("span"); if(span)span.textContent=label;
+      el.title=state==="connected"?"Google Apps Script connected":"Open connection settings";
+    });
+  }
+  async function refreshConnectionStatus(){
+    if(!cloudConfigured()){
+      setConnectionIndicator("disconnected","Not connected");
+      return false;
+    }
+    setConnectionIndicator("checking","Checking");
+    try{
+      const result=await cloudCall("ping");
+      setConnectionIndicator("connected","Connected");
+      return !!result;
+    }catch(error){
+      console.warn("BearCrest connection check failed",error);
+      setConnectionIndicator("disconnected","Connection error");
+      return false;
+    }
+  }
+  window.refreshBearCrestConnectionStatus=refreshConnectionStatus;
+  ["mobileConnectionStatus","desktopConnectionStatus"].forEach(id=>document.getElementById(id)?.addEventListener("click",openConnectionSettings));
+
+  const bottom=document.querySelector(".mobile-bottom-nav");
+  if(bottom){
+    const activate=(button,event)=>{
+      if(event){event.preventDefault();event.stopImmediatePropagation();}
+      if(button.id==="mobileBottomAdd"){
+        openAdd();
+        return;
+      }
+      const view=button.getAttribute("data-mobile-nav");
+      if(!view)return;
+      v6ShowView(view);
+      bottom.querySelectorAll("button[data-mobile-nav]").forEach(btn=>btn.classList.toggle("active",btn===button));
+    };
+    bottom.querySelectorAll("button").forEach(button=>{
+      button.type="button";
+      button.addEventListener("click",event=>activate(button,event),false);
+    });
+  }
+
+  const oldTest=document.getElementById("testCloudBtn")?.onclick;
+  if(document.getElementById("testCloudBtn"))document.getElementById("testCloudBtn").onclick=async event=>{
+    if(oldTest)await oldTest.call(event.currentTarget,event);
+    setTimeout(refreshConnectionStatus,250);
+  };
+  const cloudForm=document.getElementById("cloudSetupForm");
+  cloudForm?.addEventListener("submit",()=>setTimeout(refreshConnectionStatus,150));
+  window.addEventListener("online",refreshConnectionStatus);
+  window.addEventListener("offline",()=>setConnectionIndicator("disconnected","Offline"));
+  refreshConnectionStatus();
+})();

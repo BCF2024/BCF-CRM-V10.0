@@ -1767,3 +1767,45 @@ v5ShowView=function(name){
 if($("sidebarCollapseBtn"))$("sidebarCollapseBtn").onclick=()=>{const shell=document.querySelector(".app-shell");shell.classList.toggle("sidebar-collapsed");const collapsed=shell.classList.contains("sidebar-collapsed");$("sidebarCollapseBtn").textContent=collapsed?"›":"‹";localStorage.setItem("bearcrest_sidebar_collapsed",collapsed?"1":"0");};
 if(localStorage.getItem("bearcrest_sidebar_collapsed")==="1")document.querySelector(".app-shell")?.classList.add("sidebar-collapsed");
 renderLoansPage();renderCommunicationCenter();
+
+/* ===== BearCrest V6.2 usability hotfix ===== */
+(function(){
+  const originalRenderBoard=renderBoard;
+  renderBoard=function(list){
+    originalRenderBoard(list);
+    const board=$("boardPanel");
+    if(board && !board.parentElement.classList.contains("pipeline-board-shell")){
+      const shell=document.createElement("div");
+      shell.className="pipeline-board-shell";
+      board.parentNode.insertBefore(shell,board);
+      shell.appendChild(board);
+    }
+    document.querySelectorAll(".loan-card").forEach(card=>{
+      card.addEventListener("dragstart",()=>card.classList.add("dragging"));
+      card.addEventListener("dragend",()=>card.classList.remove("dragging"));
+    });
+    document.querySelectorAll(".board-column").forEach(col=>{
+      col.addEventListener("dragenter",()=>col.classList.add("drag-over"));
+      col.addEventListener("dragleave",e=>{if(!col.contains(e.relatedTarget))col.classList.remove("drag-over")});
+      col.addEventListener("drop",()=>col.classList.remove("drag-over"));
+    });
+  };
+
+  const priorShowView=v5ShowView;
+  v5ShowView=function(name){
+    if(name==="pipeline"){
+      showBoard=true;
+      archiveOnly=false;
+      todayOnly=false;
+      if($("statusFilter"))$("statusFilter").value="";
+    }
+    priorShowView(name);
+    if(name==="pipeline")render();
+    window.scrollTo({top:0,left:0,behavior:"auto"});
+  };
+
+  const shell=document.querySelector(".app-shell");
+  if(shell && localStorage.getItem("bearcrest_sidebar_collapsed")==="1"){
+    shell.classList.add("sidebar-collapsed");
+  }
+})();

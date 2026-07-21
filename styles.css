@@ -270,3 +270,22 @@ dialog{width:min(1000px,96vw);max-height:94vh}
 .communication-pill.draft{background:#fff4d8;color:#7c5a00}
 .communication-row button{white-space:nowrap}
 @media(max-width:900px){.sidebar-collapse-btn{display:none}.communication-stats{grid-template-columns:1fr}.communication-toolbar{grid-template-columns:1fr}.communication-list-heading{display:none}.communication-row{grid-template-columns:1fr;gap:7px}.loans-toolbar{grid-template-columns:1fr}}
+
+/* ===== BearCrest V6.2 usability hotfix ===== */
+html,body{min-height:100%;overflow-x:hidden}
+body{overflow-y:auto}
+@media(min-width:801px){
+  .app-shell{display:block;min-height:100vh}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:250px;min-width:250px;overflow-y:auto;overflow-x:hidden;transition:width .2s ease;z-index:20}
+  .workspace{margin-left:250px;width:calc(100% - 250px);min-height:100vh;overflow:visible;transition:margin-left .2s ease,width .2s ease}
+  .app-shell.sidebar-collapsed .sidebar{width:78px;min-width:78px}
+  .app-shell.sidebar-collapsed .workspace{margin-left:78px;width:calc(100% - 78px)}
+  .v5-main{max-width:none;width:100%;overflow:visible}
+  .app-view{min-width:0}
+}
+.pipeline-board-shell{overflow-x:auto;overflow-y:visible;padding-bottom:10px}
+.board{align-items:start;min-width:max-content;overflow:visible}
+.board-column{width:260px;min-width:260px}
+.loan-card.dragging{opacity:.55;transform:rotate(1deg)}
+.board-column.drag-over{outline:3px solid rgba(200,163,72,.45);outline-offset:2px;background:#f5f1e4}
+.sidebar-brand img{background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(255,255,255,.9));border:1px solid rgba(231,207,120,.75);border-radius:12px;padding:5px;box-shadow:0 6px 18px rgba(0,0,0,.18)}

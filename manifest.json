@@ -1,0 +1,19 @@
+{
+  "name": "BearCrest CRM 9.3",
+  "short_name": "BearCrest CRM",
+  "description": "BearCrest Funding responsive lending CRM for mobile, Fold, DeX, and desktop",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eef2ef",
+  "theme_color": "#073f2c",
+  "icons": [
+    {
+      "src": "bcf-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

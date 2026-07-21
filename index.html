@@ -428,7 +428,8 @@
       </div></div>
       <div class="settings-section"><h3>Google Drive Connection</h3>
         <p>Paste the Google Apps Script Web App URL after deploying the included <strong>BearCrest_Cloud_Connector.gs</strong> file.</p>
-        <label>Apps Script Web App URL<input id="cloudEndpoint" placeholder="https://script.google.com/macros/s/.../exec" /></label>
+        <label>Apps Script Web App URL<input id="cloudEndpoint" placeholder="Set once in config.js for every device" /></label>
+        <p class="shared-config-note">For use on every phone and computer, set the URL once in <strong>config.js</strong> and upload that file to GitHub. This screen will then show the shared connection automatically.</p>
         <label>Main Drive Folder Name<input id="adminRootFolder" value="BearCrest CRM Documents" /></label>
         <div class="wide local-drive-setting"><strong>Google Drive for Desktop Storage</strong><p id="localDriveAdminStatus">No synchronized folder selected.</p><button type="button" id="chooseLocalDriveBtn">Choose Google Drive Folder</button> <button type="button" id="clearLocalDriveBtn">Disconnect Folder</button></div>
       </div>
@@ -495,7 +496,7 @@ getfunded@bearcrest.com</textarea></label>
         <label>New Password<input id="adminNewPassword" type="password" autocomplete="new-password" placeholder="Leave blank to keep current password" /></label>
         <label>Confirm New Password<input id="adminConfirmPassword" type="password" autocomplete="new-password" /></label>
       </div><p class="security-help">Use at least 10 characters. For a hosted version, this temporary browser login should be replaced with server-based authentication and optional two-step verification.</p></div>
-      <div class="setup-note">These settings are saved in this browser. Company information automatically appears on generated documents. The loan prefix and next number control newly created loans. Your Jotform API key remains stored only in Google Apps Script Script Properties.</div>
+      <div class="setup-note">Most preferences are saved in this browser. The Apps Script connection can be shared across every device through config.js. Company information automatically appears on generated documents. The loan prefix and next number control newly created loans. Your Jotform API key remains stored only in Google Apps Script Script Properties.</div>
       <div class="dialog-actions"><button type="button" id="resetAdminBtn">Restore Defaults</button><div class="spacer"></div><button type="button" id="testCloudBtn">Test Drive Connection</button><button type="submit" class="primary">Save Admin Settings</button></div>
     </form>
   </dialog>
@@ -634,6 +635,7 @@ getfunded@bearcrest.com</textarea></label>
   </dialog>
 
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
   <script src="auth.js"></script>
 

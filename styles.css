@@ -339,3 +339,5 @@ body{overflow-y:auto}
   .side-nav .nav-item{font-size:.72rem!important;padding:8px 6px!important}
   #pipelineView .board-column{width:72vw!important;min-width:72vw!important}
 }
+.shared-config-note{margin:8px 0 0;color:#52645d;font-size:.9rem;line-height:1.45}
+#cloudEndpoint[readonly]{background:#edf4ef;color:#173f35;font-weight:650;cursor:default}

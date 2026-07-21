@@ -1,3 +1,7 @@
+BearCrest CRM Version 6.1
+
+This package preserves the Version 6.0 layout and adds a separate Loans page, Communications center, saved email drafts, borrower email history, and collapsible sidebar.
+
 BEARCREST LOAN CRM VERSION 5.2 — OPERATIONS CENTER
 
 WORKING CALENDAR

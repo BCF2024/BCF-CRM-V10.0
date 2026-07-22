@@ -8,5 +8,5 @@
   appsScriptUrl: "https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
 */
 window.BEARCREST_CONFIG = Object.freeze({
-  appsScriptUrl: "PASTE_YOUR_EXISTING_APPS_SCRIPT_WEB_APP_URL_HERE"
+  appsScriptUrl: "https://script.google.com/macros/s/AKfycbysco3_58G625JCTFsNCsnEmKAfd0Gh9YH2IPs4eD9SGm72nrUBbsfRXSpZ57vliOietQ/exec"
 });

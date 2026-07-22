@@ -1,15 +1,7 @@
-BEARCREST CRM — ONE APPS SCRIPT URL FOR EVERY DEVICE
+BEARCREST SHARED CONNECTION
 
-1. Open config.js.
-2. Replace PASTE_YOUR_EXISTING_APPS_SCRIPT_WEB_APP_URL_HERE with the existing
-   deployed Apps Script Web App URL. Keep the quotation marks.
-3. Upload config.js with the other CRM files to the same GitHub repository.
-4. Refresh the CRM on the desktop, phone, or any other computer.
+This build is preconfigured to use the following Google Apps Script Web App URL on every device:
 
-The CRM will now use that one shared URL everywhere. You do not need to paste
-it separately into every browser.
+https://script.google.com/macros/s/AKfycbysco3_58G625JCTFsNCsnEmKAfd0Gh9YH2IPs4eD9SGm72nrUBbsfRXSpZ57vliOietQ/exec
 
-The URL should look like:
-https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
-
-IMPORTANT: Use the /exec deployment URL, not the Apps Script editor URL.
+After uploading these files to GitHub Pages, fully close and reopen the installed mobile app. If the old build remains cached, remove the app from the home screen and install it again.

@@ -1750,7 +1750,7 @@ window.addEventListener("resize",()=>{if(v6IsMobile()&&!document.querySelector("
 setTimeout(()=>{if(v6IsMobile())v6ShowView("mobilehome");else v5ShowView("dashboard");},0);
 
 
-// ===== BearCrest Version 6.1: Separate Loans + Communications Center + Sidebar =====
+// ===== BearCrest Version 6.6: Separate Loans + Communications Center + Sidebar =====
 const EMAIL_DRAFTS_KEY="bearcrest_email_drafts_v6_1";
 let emailDrafts=(()=>{try{return JSON.parse(localStorage.getItem(EMAIL_DRAFTS_KEY)||"[]");}catch{return [];}})();
 function saveEmailDrafts(){localStorage.setItem(EMAIL_DRAFTS_KEY,JSON.stringify(emailDrafts));renderCommunicationCenter();}
@@ -2080,29 +2080,48 @@ function dealGrade(spread,roi,allIn,arv){
   if(spread>0)return "Review";
   return "Does Not Fit";
 }
+function median(values){
+  const nums=values.map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!nums.length)return 0;
+  const m=Math.floor(nums.length/2);
+  return nums.length%2?nums[m]:(nums[m-1]+nums[m])/2;
+}
 function renderDealAnalysis(data,input){
-  const arv=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
+  const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
+  const manualArv=Number(input.arvOverride||0), analysisValue=manualArv||asIs;
   const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
-  const selling=arv*(Number(input.sellingCostPct||0)/100), spread=arv-allIn-selling, roi=allIn?spread/allIn*100:0, max70=arv*.70-rehab, grade=dealGrade(spread,roi,allIn,arv);
+  const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab, grade=dealGrade(spread,roi,allIn,analysisValue);
   const comps=Array.isArray(data.comparables)?data.comparables:[];
+  const soldPrices=comps.map(c=>Number(c.price||c.lastSalePrice||0)).filter(v=>v>0);
+  const ppsf=comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return price>0&&sf>0?price/sf:0;}).filter(v=>v>0);
+  const medComp=median(soldPrices), medPpsf=median(ppsf);
+  const mismatch=(purchase>0&&high>0&&purchase>high*1.75)||(asIs>0&&purchase>0&&asIs<purchase*.4);
+  const valueLabel=manualArv?'ARV Used for Analysis':'Automated As-Is Value Used';
+  const warnings=[];
+  if(!manualArv)warnings.push('No renovated-comp ARV was entered, so calculations are using RentCast’s automated as-is estimate.');
+  if(mismatch)warnings.push('The purchase price is far outside the returned value range. Confirm the address and review every comp before relying on this result.');
+  if(!comps.length)warnings.push('No comparable sales were returned.');
   $("dealAnalyzerResults").classList.remove("hidden");
   $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid">
-    <div class="deal-metric"><small>Estimated ARV / Value</small><strong>${currency0(arv)}</strong></div>
-    <div class="deal-metric"><small>Estimated Range</small><strong>${currency0(low)} – ${currency0(high)}</strong></div>
+    <div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div>
+    <div class="deal-metric"><small>Automated As-Is Range</small><strong>${currency0(low)} – ${currency0(high)}</strong></div>
+    <div class="deal-metric"><small>${valueLabel}</small><strong>${currency0(analysisValue)}</strong></div>
+    <div class="deal-metric"><small>Median Comp Sale</small><strong>${currency0(medComp)}</strong></div>
+    <div class="deal-metric"><small>Median Comp Price / Sq. Ft.</small><strong>${medPpsf?currency0(medPpsf):'—'}</strong></div>
     <div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div>
     <div class="deal-metric"><small>Estimated Net Spread</small><strong>${currency0(spread)}</strong></div>
     <div class="deal-metric"><small>Estimated ROI</small><strong>${roi.toFixed(1)}%</strong></div>
     <div class="deal-metric"><small>70% Rule Max Purchase</small><strong>${currency0(max70)}</strong></div>
-    <div class="deal-metric"><small>Project Cost / ARV</small><strong>${arv?(allIn/arv*100).toFixed(1):"0.0"}%</strong></div>
+    <div class="deal-metric"><small>Project Cost / Analysis Value</small><strong>${analysisValue?(allIn/analysisValue*100).toFixed(1):"0.0"}%</strong></div>
     <div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div>
-  </div><div class="deal-note"><b>Preliminary analysis only.</b> RentCast provides an automated value estimate, not a renovation-specific appraisal. Review the selected comparable sales and condition before using the number for lending.</div>
-  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map(c=>`<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(c.price||c.lastSalePrice)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`).join("")||'<tr><td colspan="6">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
+  </div><div class="deal-note"><b>Important:</b> Rehab dollars do not automatically increase value dollar-for-dollar. RentCast supplies an automated as-is estimate and sales comps; a true ARV must be supported by renovated comparable sales.${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
+  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return `<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="7">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
-  const input={address,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
+  const input={address,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
   try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
 $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
-$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});

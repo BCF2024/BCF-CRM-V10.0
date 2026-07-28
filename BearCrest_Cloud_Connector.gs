@@ -330,7 +330,7 @@ function createDefaultLenders_(){
     contactName:'',
     email:'',
     phone:'',
-    portalUrl:'',
+    portalUrl:'', programs:'', states:'', minLoan:0, maxLoan:0, minFico:0, minExperience:0, maxLtv:0, maxLtc:0, maxLtarv:0, foreignNational:'unknown', rural:'unknown', propertyTypes:'', checklist:'',
     notes:'',
     createdAt:new Date().toISOString(),
     updatedAt:new Date().toISOString()
@@ -431,7 +431,7 @@ function saveLender_(p){
         contactName:'',
         email:'',
         phone:'',
-        portalUrl:'',
+        portalUrl:'', programs:'', states:'', minLoan:0, maxLoan:0, minFico:0, minExperience:0, maxLtv:0, maxLtc:0, maxLtarv:0, foreignNational:'unknown', rural:'unknown', propertyTypes:'', checklist:'',
         notes:'',
         createdAt:now,
         updatedAt:now
@@ -444,6 +444,10 @@ function saveLender_(p){
     lender.email=String(p.email||'').trim();
     lender.phone=String(p.phone||'').trim();
     lender.portalUrl=String(p.portalUrl||'').trim();
+    lender.programs=String(p.programs||'').trim(); lender.states=String(p.states||'').trim();
+    lender.minLoan=Number(p.minLoan||0); lender.maxLoan=Number(p.maxLoan||0); lender.minFico=Number(p.minFico||0); lender.minExperience=Number(p.minExperience||0);
+    lender.maxLtv=Number(p.maxLtv||0); lender.maxLtc=Number(p.maxLtc||0); lender.maxLtarv=Number(p.maxLtarv||0);
+    lender.foreignNational=String(p.foreignNational||'unknown'); lender.rural=String(p.rural||'unknown'); lender.propertyTypes=String(p.propertyTypes||'').trim(); lender.checklist=String(p.checklist||'').trim();
     lender.notes=String(p.notes||'').trim();
     if(typeof p.active==='boolean')lender.active=p.active;
     lender.updatedAt=now;

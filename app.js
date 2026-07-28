@@ -1069,6 +1069,15 @@ function v5ShowView(name){
     $("dealAnalyzerView")?.classList.add("active-view");
     document.querySelector('[data-view="deal-analyzer"]')?.classList.add("active");
     $("viewSubtitle").textContent="Automated property valuation and deal screening";
+    restoreDealDraft();
+    return;
+  }
+
+  if(name==="deals"){
+    $("savedDealsView")?.classList.add("active-view");
+    document.querySelector('[data-view="deals"]')?.classList.add("active");
+    $("viewSubtitle").textContent="Saved property analyses and underwriting history";
+    renderSavedDeals();
     return;
   }
 
@@ -2024,6 +2033,26 @@ renderLoansPage();renderCommunicationCenter();
 })();
 
 
+
+// ===== Version 7.0 Saved Deal Analyzer Records =====
+const DEALS_STORAGE_KEY="bcfSavedDealsV1";
+const DEAL_DRAFT_KEY="bcfDealAnalyzerDraftV1";
+let activeSavedDealId="";
+function getSavedDeals(){try{const v=JSON.parse(localStorage.getItem(DEALS_STORAGE_KEY)||"[]");return Array.isArray(v)?v:[];}catch{return [];}}
+function putSavedDeals(v){localStorage.setItem(DEALS_STORAGE_KEY,JSON.stringify(v));}
+function dealInputFromForm(){return {address:$("dealAddress")?.value.trim()||"",purchasePrice:$("dealPurchasePrice")?.value||"",rehabBudget:$("dealRehabBudget")?.value||"",arvOverride:$("dealArvOverride")?.value||"",closingCosts:$("dealClosingCosts")?.value||"0",sellingCostPct:$("dealSellingCostPct")?.value||"8",status:$("dealStatus")?.value||"New Lead",notes:$("dealNotes")?.value||""};}
+function fillDealForm(input={}){const map={dealAddress:"address",dealPurchasePrice:"purchasePrice",dealRehabBudget:"rehabBudget",dealArvOverride:"arvOverride",dealClosingCosts:"closingCosts",dealSellingCostPct:"sellingCostPct",dealStatus:"status",dealNotes:"notes"};Object.entries(map).forEach(([id,key])=>{if($(id)&&input[key]!==undefined)$(id).value=input[key];});}
+function saveDealDraft(){const draft={id:activeSavedDealId,input:dealInputFromForm(),data:dealAnalyzerState.data||null,excluded:[...(dealAnalyzerState.excluded||new Set())],savedAt:new Date().toISOString()};localStorage.setItem(DEAL_DRAFT_KEY,JSON.stringify(draft));}
+function restoreDealDraft(){if(dealAnalyzerState.data||$("dealAddress")?.value)return;try{const d=JSON.parse(localStorage.getItem(DEAL_DRAFT_KEY)||"null");if(!d)return;activeSavedDealId=d.id||"";fillDealForm(d.input||{});if(d.data){dealAnalyzerState.excluded=new Set(d.excluded||[]);renderDealAnalysis(d.data,d.input||{});$("dealAnalyzerStatus").textContent="Previous analysis restored.";}}catch(e){console.warn(e);}}
+function computedDealMetrics(record){const data=record.data||{},input=record.input||{},subject=data.subjectProperty||data.property||data,all=Array.isArray(data.comparables)?data.comparables:[],excluded=new Set(record.excluded||[]),comps=all.filter((_,i)=>!excluded.has(i));const auto=estimatedCompArv(comps,subject),arv=Number(input.arvOverride||0)||auto||Number(data.price||data.value||0),cost=Number(input.purchasePrice||0)+Number(input.rehabBudget||0)+Number(input.closingCosts||0),selling=arv*(Number(input.sellingCostPct||0)/100),spread=arv-cost-selling,roi=cost?spread/cost*100:0;return {arv,cost,spread,roi,comps:comps.length};}
+function saveCurrentDeal(){const input=dealInputFromForm();if(!input.address)return alert("Enter a property address before saving.");const deals=getSavedDeals(),now=new Date().toISOString(),record={id:activeSavedDealId||("deal_"+Date.now()),input,data:dealAnalyzerState.data||null,excluded:[...(dealAnalyzerState.excluded||new Set())],createdAt:now,updatedAt:now};const i=deals.findIndex(d=>d.id===record.id);if(i>=0){record.createdAt=deals[i].createdAt||now;deals[i]=record;}else deals.unshift(record);putSavedDeals(deals);activeSavedDealId=record.id;saveDealDraft();$("dealAnalyzerStatus").textContent="Deal saved. You can reopen it from Saved Deals.";renderSavedDeals();}
+function openSavedDeal(id){const r=getSavedDeals().find(d=>d.id===id);if(!r)return;activeSavedDealId=r.id;fillDealForm(r.input||{});dealAnalyzerState.excluded=new Set(r.excluded||[]);if(r.data)renderDealAnalysis(r.data,r.input||{});else{$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";}saveDealDraft();v5ShowView("deal-analyzer");$("dealAnalyzerStatus").textContent="Saved deal opened.";}
+function deleteSavedDeal(id){const r=getSavedDeals().find(d=>d.id===id);if(!r||!confirm(`Delete the saved analysis for ${r.input?.address||"this property"}?`))return;putSavedDeals(getSavedDeals().filter(d=>d.id!==id));if(activeSavedDealId===id)activeSavedDealId="";renderSavedDeals();}
+function refreshSavedDeal(id){openSavedDeal(id);setTimeout(()=>$("analyzeDealBtn")?.click(),50);}
+function pdfSavedDeal(id){const r=getSavedDeals().find(d=>d.id===id);if(!r?.data)return alert("This saved deal does not have completed comp data yet.");const old={data:dealAnalyzerState.data,input:dealAnalyzerState.input,excluded:dealAnalyzerState.excluded};dealAnalyzerState.data=r.data;dealAnalyzerState.input=r.input;dealAnalyzerState.excluded=new Set(r.excluded||[]);printCompReport();dealAnalyzerState.data=old.data;dealAnalyzerState.input=old.input;dealAnalyzerState.excluded=old.excluded;}
+function renderSavedDeals(){if(!$("savedDealsList"))return;const q=($("savedDealsSearch")?.value||"").toLowerCase(),filter=$("savedDealsFilter")?.value||"all";let deals=getSavedDeals().filter(d=>(filter==="all"||d.input?.status===filter)&&(!q||`${d.input?.address||""} ${d.input?.status||""} ${d.input?.notes||""}`.toLowerCase().includes(q)));const all=getSavedDeals(),active=all.filter(d=>!["Closed","Declined"].includes(d.input?.status)).length,approved=all.filter(d=>d.input?.status==="Approved").length;$("savedDealsSummary").innerHTML=`<div class="deal-metric"><small>Total Saved Deals</small><strong>${all.length}</strong></div><div class="deal-metric"><small>Active Reviews</small><strong>${active}</strong></div><div class="deal-metric"><small>Approved</small><strong>${approved}</strong></div>`;$("savedDealsList").innerHTML=deals.map(d=>{const m=computedDealMetrics(d),date=new Date(d.updatedAt||d.createdAt).toLocaleDateString();return `<article class="saved-deal-row"><div class="saved-deal-main"><strong>${esc(d.input?.address||"Untitled property")}</strong><span class="saved-deal-status">${esc(d.input?.status||"New Lead")}</span><small>Updated ${date}${d.input?.notes?` · ${esc(d.input.notes.slice(0,90))}`:""}</small></div><div class="saved-deal-numbers"><span><small>ARV</small><b>${currency0(m.arv)}</b></span><span><small>Project Cost</small><b>${currency0(m.cost)}</b></span><span><small>Net Spread</small><b>${currency0(m.spread)}</b></span><span><small>ROI</small><b>${m.roi.toFixed(1)}%</b></span></div><div class="saved-deal-actions"><button data-deal-open="${d.id}">Open</button><button data-deal-refresh="${d.id}">Refresh Comps</button><button data-deal-pdf="${d.id}">PDF</button><button data-deal-delete="${d.id}" class="danger-text">Delete</button></div></article>`}).join("")||'<div class="empty-saved-deals"><h3>No saved deals found</h3><p>Analyze a property and click Save Deal. It will remain available after you close or leave the CRM.</p></div>';document.querySelectorAll('[data-deal-open]').forEach(b=>b.onclick=()=>openSavedDeal(b.dataset.dealOpen));document.querySelectorAll('[data-deal-refresh]').forEach(b=>b.onclick=()=>refreshSavedDeal(b.dataset.dealRefresh));document.querySelectorAll('[data-deal-pdf]').forEach(b=>b.onclick=()=>pdfSavedDeal(b.dataset.dealPdf));document.querySelectorAll('[data-deal-delete]').forEach(b=>b.onclick=()=>deleteSavedDeal(b.dataset.dealDelete));}
+window.openSavedDeal=openSavedDeal;
+
 // ===== BearCrest Deal Analyzer + CRM/Jotform Application PDF =====
 function normalizeJotformApplication(submission){
   const answers=submission?.answers||{};
@@ -2148,7 +2177,7 @@ function compReportHtml(){
 }
 function printCompReport(){if(!dealAnalyzerState.data)return alert('Analyze a property first.');const w=window.open('','_blank');if(!w)return alert('Allow pop-ups to create the report.');w.document.write(compReportHtml());w.document.close();}
 function renderDealAnalysis(data,input){
-  dealAnalyzerState.data=data;dealAnalyzerState.input=input;
+  dealAnalyzerState.data=data;dealAnalyzerState.input={...dealInputFromForm(),...input};
   const subject=data.subjectProperty||data.property||data;
   const allComps=Array.isArray(data.comparables)?data.comparables:[];
   const comps=includedComps();
@@ -2164,12 +2193,19 @@ function renderDealAnalysis(data,input){
   $("printCompReportBtn")?.addEventListener('click',printCompReport);
   $("printCompReportTopBtn")?.addEventListener('click',printCompReport);
   renderDealMap();
+  saveDealDraft();
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
-  const input={address,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
+  const input=dealInputFromForm();
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
   try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and nearby sold comps...";dealAnalyzerState.excluded=new Set();const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
 $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
-$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");if(dealAnalyzerState.map)dealAnalyzerState.map.remove();dealAnalyzerState={data:null,input:null,excluded:new Set(),map:null};$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+$("saveDealBtn")?.addEventListener("click",saveCurrentDeal);
+$("newSavedDealBtn")?.addEventListener("click",()=>{v5ShowView("deal-analyzer");$("clearDealBtn")?.click();});
+$("savedDealsSearch")?.addEventListener("input",renderSavedDeals);
+$("savedDealsFilter")?.addEventListener("change",renderSavedDeals);
+["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts","dealSellingCostPct","dealStatus","dealNotes"].forEach(id=>$(id)?.addEventListener("input",saveDealDraft));
+$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealNotes"].forEach(id=>$(id).value="");$("dealClosingCosts").value="0";$("dealSellingCostPct").value="8";$("dealStatus").value="New Lead";activeSavedDealId="";localStorage.removeItem(DEAL_DRAFT_KEY);if(dealAnalyzerState.map)dealAnalyzerState.map.remove();dealAnalyzerState={data:null,input:null,excluded:new Set(),map:null};$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+restoreDealDraft();

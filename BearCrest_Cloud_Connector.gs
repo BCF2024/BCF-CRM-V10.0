@@ -28,6 +28,8 @@ function doPost(e){
     if(action==='uploadFile')return json_(uploadFile_(payload));
     if(action==='listFiles')return json_(listFiles_(payload));
     if(action==='syncJotform')return json_(syncJotform_(payload));
+    if(action==='createApplicationPdf')return json_(createApplicationPdf_(payload));
+    if(action==='rentcastAnalyze')return json_(rentcastAnalyze_(payload));
     if(action==='sendEmail')return json_(sendEmail_(payload));
     if(action==='createCalendarEvent')return json_(createCalendarEvent_(payload));
     if(action==='uploadLibraryFile')return json_(uploadLibraryFile_(payload));
@@ -497,4 +499,55 @@ function reorderLenders_(p){
   }finally{
     lock.releaseLock();
   }
+}
+
+
+/* BEARCREST DEAL ANALYZER */
+function rentcastAnalyze_(p){
+  const key=PropertiesService.getScriptProperties().getProperty('RENTCAST_API_KEY');
+  if(!key)throw new Error('Add RENTCAST_API_KEY in Apps Script Project Settings > Script Properties.');
+  const address=String(p.address||'').trim();
+  if(!address)throw new Error('A complete property address is required.');
+  const url='https://api.rentcast.io/v1/avm/value?address='+encodeURIComponent(address)+'&compCount=10';
+  const response=UrlFetchApp.fetch(url,{method:'get',headers:{'X-Api-Key':key,'Accept':'application/json'},muteHttpExceptions:true});
+  const code=response.getResponseCode();
+  let data={};
+  try{data=JSON.parse(response.getContentText()||'{}');}catch(e){}
+  if(code<200||code>=300)throw new Error(data.message||data.error||('RentCast request failed ('+code+').'));
+  return {ok:true,data:data};
+}
+
+function createApplicationPdf_(p){
+  if(!p.folderId)throw new Error('Prepare the loan Drive folder first.');
+  const parent=DriveApp.getFolderById(p.folderId);
+  const folder=categoryFolder_(parent,'Generated Documents');
+  const borrower=clean_(p.borrowerName||'Borrower');
+  const loanNumber=clean_(p.loanNumber||'BCF');
+  const doc=DocumentApp.create(loanNumber+' - '+borrower+' - Application');
+  const body=doc.getBody();
+  body.clear();
+  const title=body.appendParagraph('BEARCREST FUNDING, LLC');
+  title.setHeading(DocumentApp.ParagraphHeading.HEADING1).setForegroundColor('#073f2c');
+  body.appendParagraph('Borrower Financing Application').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  const meta=body.appendTable([
+    ['Loan Number',String(p.loanNumber||'')],
+    ['Borrower',String(p.borrowerName||'')],
+    ['Property',String(p.propertyAddress||'')],
+    ['Submitted',String(p.submittedAt||'')]
+  ]);
+  meta.setBorderColor('#d8e0dc');
+  body.appendParagraph('');
+  (p.answers||[]).forEach(function(item){
+    const q=body.appendParagraph(String(item.question||'Question'));
+    q.setBold(true).setForegroundColor('#52645b').setFontSize(9);
+    body.appendParagraph(String(item.answer||'')).setFontSize(11);
+    body.appendHorizontalRule();
+  });
+  body.appendParagraph('Application information reproduced from the applicant’s Jotform submission and retained in the BearCrest CRM loan file.').setFontSize(8).setForegroundColor('#66736d');
+  doc.saveAndClose();
+  const source=DriveApp.getFileById(doc.getId());
+  const name=loanNumber+'_'+borrower.replace(/\s+/g,'-')+'_Application.pdf';
+  const pdf=folder.createFile(source.getAs(MimeType.PDF).setName(name));
+  source.setTrashed(true);
+  return {ok:true,id:pdf.getId(),url:pdf.getUrl(),name:pdf.getName()};
 }

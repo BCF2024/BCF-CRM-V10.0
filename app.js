@@ -435,7 +435,9 @@ $("syncApplicationsBtn").onclick=async()=>{
           targetClosing:answerValue(answers,["target closing"]),
           exitStrategy:answerValue(answers,["exit strategy"]),
           status:"New Lead",
-          notes:`Imported from Jotform submission ${submissionId}`
+          notes:`Imported from Jotform submission ${submissionId}`,
+          jotformCreatedAt:submission.created_at||"",
+          jotformApplication:normalizeJotformApplication(submission)
         });
 
         loans.unshift(loan);
@@ -1060,6 +1062,13 @@ function v5ShowView(name){
     archiveOnly=false;
     $("statusFilter").value="";
     render();
+    return;
+  }
+
+  if(name==="deal-analyzer"){
+    $("dealAnalyzerView")?.classList.add("active-view");
+    document.querySelector('[data-view="deal-analyzer"]')?.classList.add("active");
+    $("viewSubtitle").textContent="Automated property valuation and deal screening";
     return;
   }
 
@@ -2011,3 +2020,89 @@ renderLoansPage();renderCommunicationCenter();
   window.addEventListener("offline",()=>setConnectionIndicator("disconnected","Offline"));
   refreshConnectionStatus();
 })();
+
+
+// ===== BearCrest Deal Analyzer + Full Jotform Application PDF =====
+function normalizeJotformApplication(submission){
+  const answers=submission?.answers||{};
+  return Object.values(answers).map(a=>({
+    order:Number(a.order||0),
+    question:String(a.text||a.name||"Question"),
+    answer:formatJotformAnswer(a.answer)
+  })).filter(x=>x.answer!=="").sort((a,b)=>a.order-b.order);
+}
+function formatJotformAnswer(value){
+  if(value===null||value===undefined)return "";
+  if(Array.isArray(value))return value.map(formatJotformAnswer).filter(Boolean).join(", ");
+  if(typeof value==="object")return Object.values(value).map(formatJotformAnswer).filter(Boolean).join(" ");
+  return String(value).trim();
+}
+function currentLoanRecord(){return loans.find(x=>x.loanId===$("loanId")?.value);}
+function applicationRowsHtml(loan){
+  const rows=loan?.jotformApplication||[];
+  if(!rows.length)return '<p>No complete Jotform application is stored for this loan. Applications imported after this update will include every submitted answer.</p>';
+  return rows.map(x=>`<div class="app-row"><div class="app-question">${esc(x.question)}</div><div class="app-answer">${esc(x.answer)}</div></div>`).join("");
+}
+function applicationPrintHtml(loan){
+  const logo=new URL("bcf-logo.png",location.href).href;
+  return `<!doctype html><html><head><title>${esc(loan.loanNumber||"BCF")} Application</title><style>
+  @page{size:letter;margin:.55in}body{font-family:Arial,sans-serif;color:#17231e;margin:0}.head{display:flex;justify-content:space-between;border-bottom:4px solid #b99a3e;padding-bottom:14px;margin-bottom:20px}.head img{width:82px}.head h1{color:#073f2c;margin:0 0 4px;font-size:23px}.meta{text-align:right;font-size:12px;line-height:1.6}.app-row{break-inside:avoid;padding:10px 0;border-bottom:1px solid #dce5e0}.app-question{font-size:11px;font-weight:bold;text-transform:uppercase;color:#52645b;margin-bottom:5px}.app-answer{font-size:14px;white-space:pre-wrap}.foot{margin-top:24px;padding-top:10px;border-top:1px solid #bbb;font-size:10px;color:#66736d}.toolbar{position:sticky;top:0;background:#073f2c;padding:10px;text-align:center}.toolbar button{padding:9px 15px;margin:0 5px}@media print{.toolbar{display:none}}
+  </style></head><body><div class="toolbar"><button onclick="print()">Print / Save PDF</button><button onclick="close()">Close</button></div><div class="head"><div style="display:flex;gap:14px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding, LLC</h1><div>Borrower Financing Application</div></div></div><div class="meta"><b>${esc(loan.loanNumber||"")}</b><br>${esc(loan.borrowerName||"")}<br>${esc(loan.propertyAddress||"")}<br>Submitted: ${esc(loan.jotformCreatedAt||loan.dateReceived||"")}</div></div>${applicationRowsHtml(loan)}<div class="foot">Application information is reproduced from the applicant's Jotform submission and retained in the BearCrest CRM loan file.</div></body></html>`;
+}
+function viewPrintApplication(){
+  const loan=currentLoanRecord();
+  if(!loan)return alert("Open a saved loan first.");
+  const w=window.open("","_blank");
+  if(!w)return alert("Allow pop-ups to view the application.");
+  w.document.write(applicationPrintHtml(loan));w.document.close();
+}
+async function saveApplicationPdf(){
+  let loan=currentLoanRecord();
+  if(!loan)return alert("Open a saved loan first.");
+  if(!(loan.jotformApplication||[]).length)return alert("This loan does not contain a complete imported Jotform application.");
+  try{
+    const b=$("saveApplicationPdfBtn");b.disabled=true;b.textContent="Saving PDF...";
+    if(!loan.driveFolderId)loan=await ensureDriveFolder();
+    const out=await cloudCall("createApplicationPdf",{folderId:loan.driveFolderId,loanNumber:loan.loanNumber,borrowerName:loan.borrowerName,propertyAddress:loan.propertyAddress,submittedAt:loan.jotformCreatedAt||loan.dateReceived,answers:loan.jotformApplication});
+    await renderClientDocuments();
+    alert("Application PDF saved in the loan's Generated Documents folder.");
+    if(out.url&&confirm("Open the saved PDF now?"))window.open(out.url,"_blank");
+  }catch(e){alert(e.message);}finally{const b=$("saveApplicationPdfBtn");if(b){b.disabled=false;b.textContent="Save Application PDF";}}
+}
+$("viewApplicationBtn")?.addEventListener("click",viewPrintApplication);
+$("saveApplicationPdfBtn")?.addEventListener("click",saveApplicationPdf);
+
+function currency0(v){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(v||0));}
+function dealGrade(spread,roi,allIn,arv){
+  const ratio=arv?allIn/arv:1;
+  if(spread>=50000&&roi>=20&&ratio<=.75)return "Excellent";
+  if(spread>=25000&&roi>=12&&ratio<=.82)return "Good";
+  if(spread>0)return "Review";
+  return "Does Not Fit";
+}
+function renderDealAnalysis(data,input){
+  const arv=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
+  const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
+  const selling=arv*(Number(input.sellingCostPct||0)/100), spread=arv-allIn-selling, roi=allIn?spread/allIn*100:0, max70=arv*.70-rehab, grade=dealGrade(spread,roi,allIn,arv);
+  const comps=Array.isArray(data.comparables)?data.comparables:[];
+  $("dealAnalyzerResults").classList.remove("hidden");
+  $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid">
+    <div class="deal-metric"><small>Estimated ARV / Value</small><strong>${currency0(arv)}</strong></div>
+    <div class="deal-metric"><small>Estimated Range</small><strong>${currency0(low)} – ${currency0(high)}</strong></div>
+    <div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div>
+    <div class="deal-metric"><small>Estimated Net Spread</small><strong>${currency0(spread)}</strong></div>
+    <div class="deal-metric"><small>Estimated ROI</small><strong>${roi.toFixed(1)}%</strong></div>
+    <div class="deal-metric"><small>70% Rule Max Purchase</small><strong>${currency0(max70)}</strong></div>
+    <div class="deal-metric"><small>Project Cost / ARV</small><strong>${arv?(allIn/arv*100).toFixed(1):"0.0"}%</strong></div>
+    <div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div>
+  </div><div class="deal-note"><b>Preliminary analysis only.</b> RentCast provides an automated value estimate, not a renovation-specific appraisal. Review the selected comparable sales and condition before using the number for lending.</div>
+  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map(c=>`<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(c.price||c.lastSalePrice)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`).join("")||'<tr><td colspan="6">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
+}
+async function analyzeDeal(){
+  const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
+  const input={address,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
+  const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
+  try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
+}
+$("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
+$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});

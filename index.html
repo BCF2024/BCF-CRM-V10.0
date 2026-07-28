@@ -52,6 +52,7 @@
         <button class="nav-item" data-view="contacts">♙ <span>Contacts</span></button>
         <button class="nav-item" data-view="lenders">▰ <span>Lenders</span></button>
         <button class="nav-item" data-view="documents">▧ <span>Documents</span></button>
+        <button class="nav-item" data-view="deal-analyzer">⌂ <span>Deal Analyzer</span></button>
         <button class="nav-item" data-view="communication">✉ <span>Communication</span></button>
         <button class="nav-item" data-view="reports">▥ <span>Reports</span></button>
         <button class="nav-item" data-view="archive">▣ <span>Archive</span></button>
@@ -332,6 +333,21 @@
             <div id="communicationList" class="communication-list"></div>
           </section>
         </section>
+
+        <section id="dealAnalyzerView" class="app-view">
+          <div class="view-heading"><div><h2>BearCrest Deal Analyzer</h2><p>Enter the property and project numbers to pull an automated value estimate and comparable sales.</p></div></div>
+          <section class="v5-card deal-analyzer-card">
+            <div class="deal-input-grid">
+              <label class="wide">Property Address<input id="dealAddress" placeholder="123 Main St, City, ST 12345" /></label>
+              <label>Purchase Price<input id="dealPurchasePrice" type="number" step="100" /></label>
+              <label>Rehab Budget<input id="dealRehabBudget" type="number" step="100" /></label>
+              <label>Estimated Closing Costs<input id="dealClosingCosts" type="number" step="100" value="0" /></label>
+              <label>Estimated Selling Costs (%)<input id="dealSellingCostPct" type="number" step="0.1" value="8" /></label>
+            </div>
+            <div class="deal-actions"><button id="analyzeDealBtn" class="primary" type="button">Analyze Deal</button><button id="clearDealBtn" type="button">Clear</button><span id="dealAnalyzerStatus"></span></div>
+          </section>
+          <section id="dealAnalyzerResults" class="deal-results hidden"></section>
+        </section>
         <section id="placeholderView" class="app-view">
           <div class="view-heading"><div><h2 id="placeholderTitle">Coming Soon</h2><p id="placeholderText"></p></div></div>
           <div class="v5-card empty-module">
@@ -404,6 +420,8 @@
         <button type="button" id="needsListBtn">Needs List</button>
         <button type="button" id="preapprovalBtn">Approval Letter</button>
         <button type="button" id="declineBtn">Decline Letter</button>
+        <button type="button" id="viewApplicationBtn">View / Print Application</button>
+        <button type="button" id="saveApplicationPdfBtn">Save Application PDF</button>
         <span class="action-divider"></span>
         <button type="button" id="composeEmailBtn" class="email-action">Email Borrower</button>
       </div>

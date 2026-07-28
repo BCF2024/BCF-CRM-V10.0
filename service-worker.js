@@ -1,4 +1,4 @@
-const CACHE_NAME="bearcrest-crm-v6-8-comps-map-1";
+const CACHE_NAME="bearcrest-crm-v6-9-comps-map-1";
 const ASSETS=["./","./index.html","./config.js",
   "./app.js","./auth.js","./styles.css","./manifest.json","./bcf-logo.png"];
 self.addEventListener("install",event=>{

@@ -2022,7 +2022,7 @@ renderLoansPage();renderCommunicationCenter();
 })();
 
 
-// ===== BearCrest Deal Analyzer + Full Jotform Application PDF =====
+// ===== BearCrest Deal Analyzer + CRM/Jotform Application PDF =====
 function normalizeJotformApplication(submission){
   const answers=submission?.answers||{};
   return Object.values(answers).map(a=>({
@@ -2038,38 +2038,47 @@ function formatJotformAnswer(value){
   return String(value).trim();
 }
 function currentLoanRecord(){return loans.find(x=>x.loanId===$("loanId")?.value);}
+function applicationFieldRows(loan){
+  const money=value=>value!==""&&value!==null&&value!==undefined?currency0(value):"";
+  return [
+    ["Loan Number",loan.loanNumber],["Date Received",loan.dateReceived],["Borrower Name",loan.borrowerName],
+    ["Phone",loan.phone],["Email",loan.email],["Borrowing Entity",loan.entityName],["Loan Program",loan.program],
+    ["Property Address",loan.propertyAddress],["Loan Amount",money(loan.loanAmount)],["Purchase Price",money(loan.purchasePrice)],
+    ["Rehab Budget",money(loan.rehabBudget)],["Estimated ARV",money(loan.arv)],["Target Closing Date",loan.targetClosing],
+    ["Exit Strategy",loan.exitStrategy],["Interest Rate",loan.interestRate],["Origination Points",loan.points],
+    ["Loan Term",loan.loanTerm],["LTV / LTC",loan.leverage],["Status",loan.status],["Assigned Lender",loan.lender],
+    ["Other Missing Documents / Needs List",loan.missingDocs],["Notes",loan.notes]
+  ];
+}
+function renderApplicationRows(rows,showBlank=true){
+  return rows.filter(([,answer])=>showBlank||String(answer||"").trim()).map(([question,answer])=>`<div class="app-row"><div class="app-question">${esc(question)}</div><div class="app-answer">${esc(answer||"")||'<span class="blank-line">&nbsp;</span>'}</div></div>`).join("");
+}
 function applicationRowsHtml(loan){
-  const rows=loan?.jotformApplication||[];
-  if(!rows.length)return '<p>No complete Jotform application is stored for this loan. Applications imported after this update will include every submitted answer.</p>';
-  return rows.map(x=>`<div class="app-row"><div class="app-question">${esc(x.question)}</div><div class="app-answer">${esc(x.answer)}</div></div>`).join("");
+  const crmRows=renderApplicationRows(applicationFieldRows(loan),true);
+  const jotRows=(loan?.jotformApplication||[]).map(x=>[x.question,x.answer]);
+  const jotSection=jotRows.length?`<h2 class="section-title">Additional Jotform Answers</h2>${renderApplicationRows(jotRows,false)}`:"";
+  return `<h2 class="section-title">CRM Loan Information</h2>${crmRows}${jotSection}`;
 }
 function applicationPrintHtml(loan){
   const logo=new URL("bcf-logo.png",location.href).href;
   return `<!doctype html><html><head><title>${esc(loan.loanNumber||"BCF")} Application</title><style>
-  @page{size:letter;margin:.55in}body{font-family:Arial,sans-serif;color:#17231e;margin:0}.head{display:flex;justify-content:space-between;border-bottom:4px solid #b99a3e;padding-bottom:14px;margin-bottom:20px}.head img{width:82px}.head h1{color:#073f2c;margin:0 0 4px;font-size:23px}.meta{text-align:right;font-size:12px;line-height:1.6}.app-row{break-inside:avoid;padding:10px 0;border-bottom:1px solid #dce5e0}.app-question{font-size:11px;font-weight:bold;text-transform:uppercase;color:#52645b;margin-bottom:5px}.app-answer{font-size:14px;white-space:pre-wrap}.foot{margin-top:24px;padding-top:10px;border-top:1px solid #bbb;font-size:10px;color:#66736d}.toolbar{position:sticky;top:0;background:#073f2c;padding:10px;text-align:center}.toolbar button{padding:9px 15px;margin:0 5px}@media print{.toolbar{display:none}}
-  </style></head><body><div class="toolbar"><button onclick="print()">Print / Save PDF</button><button onclick="close()">Close</button></div><div class="head"><div style="display:flex;gap:14px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding, LLC</h1><div>Borrower Financing Application</div></div></div><div class="meta"><b>${esc(loan.loanNumber||"")}</b><br>${esc(loan.borrowerName||"")}<br>${esc(loan.propertyAddress||"")}<br>Submitted: ${esc(loan.jotformCreatedAt||loan.dateReceived||"")}</div></div>${applicationRowsHtml(loan)}<div class="foot">Application information is reproduced from the applicant's Jotform submission and retained in the BearCrest CRM loan file.</div></body></html>`;
+  @page{size:letter;margin:.55in}body{font-family:Arial,sans-serif;color:#17231e;margin:0}.head{display:flex;justify-content:space-between;border-bottom:4px solid #b99a3e;padding-bottom:14px;margin-bottom:20px}.head img{width:82px}.head h1{color:#073f2c;margin:0 0 4px;font-size:23px}.meta{text-align:right;font-size:12px;line-height:1.6}.section-title{color:#073f2c;font-size:16px;margin:22px 0 6px;padding-bottom:5px;border-bottom:2px solid #b99a3e}.app-row{break-inside:avoid;padding:9px 0;border-bottom:1px solid #dce5e0}.app-question{font-size:10px;font-weight:bold;text-transform:uppercase;color:#52645b;margin-bottom:4px}.app-answer{font-size:13px;white-space:pre-wrap;min-height:16px}.blank-line{display:block;border-bottom:1px solid #adb9b3;height:16px}.foot{margin-top:24px;padding-top:10px;border-top:1px solid #bbb;font-size:10px;color:#66736d}.toolbar{position:sticky;top:0;background:#073f2c;padding:10px;text-align:center;z-index:2}.toolbar button{padding:9px 15px;margin:0 5px}.instructions{background:#fff7d6;border:1px solid #d4b658;padding:9px 12px;margin:0 0 16px;font-size:12px}@media print{.toolbar,.instructions{display:none}}
+  </style></head><body><div class="toolbar"><button onclick="print()">Print / Save as PDF</button><button onclick="close()">Close</button></div><div class="instructions">This application was generated from the CRM. Update the loan record and generate it again whenever information changes. Jotform is optional.</div><div class="head"><div style="display:flex;gap:14px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding, LLC</h1><div>Borrower Financing Application</div></div></div><div class="meta"><b>${esc(loan.loanNumber||"")}</b><br>${esc(loan.borrowerName||"")}<br>${esc(loan.propertyAddress||"")}<br>Prepared: ${esc(new Date().toLocaleDateString())}</div></div>${applicationRowsHtml(loan)}<div class="foot">Prepared from information stored in the BearCrest CRM. Any available Jotform answers are included as an additional section; a Jotform submission is not required.</div></body></html>`;
 }
-function viewPrintApplication(){
+function viewPrintApplication(autoPrint=false){
   const loan=currentLoanRecord();
   if(!loan)return alert("Open a saved loan first.");
   const w=window.open("","_blank");
-  if(!w)return alert("Allow pop-ups to view the application.");
+  if(!w)return alert("Allow pop-ups to generate the application.");
   w.document.write(applicationPrintHtml(loan));w.document.close();
+  if(autoPrint)w.addEventListener("load",()=>setTimeout(()=>w.print(),250),{once:true});
 }
-async function saveApplicationPdf(){
-  let loan=currentLoanRecord();
+function saveApplicationPdf(){
+  const loan=currentLoanRecord();
   if(!loan)return alert("Open a saved loan first.");
-  if(!(loan.jotformApplication||[]).length)return alert("This loan does not contain a complete imported Jotform application.");
-  try{
-    const b=$("saveApplicationPdfBtn");b.disabled=true;b.textContent="Saving PDF...";
-    if(!loan.driveFolderId)loan=await ensureDriveFolder();
-    const out=await cloudCall("createApplicationPdf",{folderId:loan.driveFolderId,loanNumber:loan.loanNumber,borrowerName:loan.borrowerName,propertyAddress:loan.propertyAddress,submittedAt:loan.jotformCreatedAt||loan.dateReceived,answers:loan.jotformApplication});
-    await renderClientDocuments();
-    alert("Application PDF saved in the loan's Generated Documents folder.");
-    if(out.url&&confirm("Open the saved PDF now?"))window.open(out.url,"_blank");
-  }catch(e){alert(e.message);}finally{const b=$("saveApplicationPdfBtn");if(b){b.disabled=false;b.textContent="Save Application PDF";}}
+  viewPrintApplication(true);
 }
-$("viewApplicationBtn")?.addEventListener("click",viewPrintApplication);
+$("viewApplicationBtn")?.addEventListener("click",()=>viewPrintApplication(false));
 $("saveApplicationPdfBtn")?.addEventListener("click",saveApplicationPdf);
 
 function currency0(v){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(v||0));}

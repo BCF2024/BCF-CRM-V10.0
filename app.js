@@ -1594,14 +1594,16 @@ window.addEventListener("beforeinstallprompt",event=>{
   $("installAppBtn")?.classList.remove("hidden");
 });
 if($("installAppBtn"))$("installAppBtn").onclick=async()=>{
+  const standalone=window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+  if(standalone){alert("BearCrest CRM is already installed on this device.");return;}
   if(!deferredInstallPrompt){
-    alert("On Android, open the browser menu and choose 'Add to Home screen' or 'Install app'.");
+    alert("The CRM can be used in the browser and installed as an app. In Microsoft Edge, open the three-dot menu, choose Apps, then Install BearCrest CRM. In Chrome, use the install icon in the address bar or choose Install app from the menu.");
     return;
   }
   deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
+  const choice=await deferredInstallPrompt.userChoice;
+  if(choice.outcome==="accepted")$("installAppBtn").textContent="APP INSTALLED";
   deferredInstallPrompt=null;
-  $("installAppBtn").classList.add("hidden");
 };
 
 if($("mobileMenuBtn"))$("mobileMenuBtn").onclick=()=>{
@@ -2082,6 +2084,7 @@ $("viewApplicationBtn")?.addEventListener("click",()=>viewPrintApplication(false
 $("saveApplicationPdfBtn")?.addEventListener("click",saveApplicationPdf);
 
 function currency0(v){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(v||0));}
+let dealAnalyzerState={data:null,input:null,excluded:new Set(),map:null};
 function dealGrade(spread,roi,allIn,arv){
   const ratio=arv?allIn/arv:1;
   if(spread>=50000&&roi>=20&&ratio<=.75)return "Excellent";
@@ -2095,42 +2098,77 @@ function median(values){
   const m=Math.floor(nums.length/2);
   return nums.length%2?nums[m]:(nums[m-1]+nums[m])/2;
 }
+function compPrice(c){return Number(c.price||c.lastSalePrice||c.salePrice||0);}
+function compSqft(c){return Number(c.squareFootage||c.sqft||0);}
+function compDate(c){return String(c.lastSaleDate||c.listedDate||c.removedDate||c.saleDate||"").slice(0,10);}
+function compAddress(c){return c.formattedAddress||c.addressLine1||c.address||"Comparable property";}
+function compLat(c){return Number(c.latitude||c.lat||c.location?.latitude||0);}
+function compLng(c){return Number(c.longitude||c.lng||c.lon||c.location?.longitude||0);}
+function compScore(c,subject){
+  let score=100;
+  const distance=Number(c.distance||0); if(distance)score-=Math.min(35,distance*18);
+  const ssf=Number(subject.squareFootage||subject.sqft||0), csf=compSqft(c); if(ssf&&csf)score-=Math.min(25,Math.abs(csf-ssf)/ssf*55);
+  const sb=Number(subject.bedrooms||0), cb=Number(c.bedrooms||0); if(sb&&cb)score-=Math.min(12,Math.abs(cb-sb)*6);
+  const sba=Number(subject.bathrooms||0), cba=Number(c.bathrooms||0); if(sba&&cba)score-=Math.min(10,Math.abs(cba-sba)*5);
+  const d=Date.parse(compDate(c)); if(d){const months=(Date.now()-d)/(1000*60*60*24*30.4);score-=Math.min(18,Math.max(0,months-6)*.7);}
+  return Math.max(0,Math.round(score));
+}
+function compTier(score){return score>=75?"Best":score>=55?"Acceptable":"Weak";}
+function includedComps(){return (dealAnalyzerState.data?.comparables||[]).filter((c,i)=>!dealAnalyzerState.excluded.has(i)&&compPrice(c)>0);}
+function estimatedCompArv(comps,subject){
+  const subjectSf=Number(subject.squareFootage||subject.sqft||0);
+  const ppsf=comps.map(c=>{const p=compPrice(c),sf=compSqft(c);return p&&sf?p/sf:0;}).filter(Boolean);
+  if(subjectSf&&ppsf.length)return median(ppsf)*subjectSf;
+  return median(comps.map(compPrice).filter(Boolean));
+}
+function dealMapHtml(){return `<section class="deal-map-card"><div class="deal-section-head"><div><h3>Comparable Map</h3><p>Subject property and selected sold comps. Green is strongest, yellow is acceptable, and red is weak.</p></div></div><div id="dealCompMap" class="deal-map"><div class="map-placeholder">Map will appear when location coordinates are available.</div></div></section>`;}
+function renderDealMap(){
+  const box=$("dealCompMap"); if(!box||!window.L)return;
+  if(dealAnalyzerState.map){dealAnalyzerState.map.remove();dealAnalyzerState.map=null;}
+  const data=dealAnalyzerState.data||{}, subject=data.subjectProperty||data.property||data;
+  const points=[];
+  const slat=Number(subject.latitude||subject.lat||data.latitude||0),slng=Number(subject.longitude||subject.lng||data.longitude||0);
+  if(slat&&slng)points.push({lat:slat,lng:slng,type:"subject",label:dealAnalyzerState.input?.address||"Subject Property"});
+  (data.comparables||[]).forEach((c,i)=>{if(dealAnalyzerState.excluded.has(i))return;const lat=compLat(c),lng=compLng(c);if(lat&&lng)points.push({lat,lng,type:compTier(compScore(c,subject)).toLowerCase(),label:compAddress(c),price:compPrice(c)});});
+  if(!points.length)return;
+  box.innerHTML="";
+  const map=L.map(box,{scrollWheelZoom:false}); dealAnalyzerState.map=map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+  const colors={subject:'#173f35',best:'#198754',acceptable:'#d9a400',weak:'#b42318'};
+  points.forEach(p=>{const marker=L.circleMarker([p.lat,p.lng],{radius:p.type==='subject'?10:8,color:'#fff',weight:2,fillColor:colors[p.type]||colors.best,fillOpacity:1}).addTo(map);marker.bindPopup(`<b>${esc(p.label)}</b>${p.price?`<br>${currency0(p.price)}`:''}${p.type==='subject'?'<br>Subject Property':''}`);});
+  map.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lng])).pad(.18),{maxZoom:14});
+  setTimeout(()=>map.invalidateSize(),100);
+}
+function compReportHtml(){
+  const data=dealAnalyzerState.data||{},input=dealAnalyzerState.input||{},subject=data.subjectProperty||data.property||data,comps=includedComps();
+  const autoArv=estimatedCompArv(comps,subject),manual=Number(input.arvOverride||0),arv=manual||autoArv||Number(data.price||data.value||0);
+  const rows=comps.map(c=>{const score=compScore(c,subject),p=compPrice(c),sf=compSqft(c);return `<tr><td>${esc(compAddress(c))}</td><td>${currency0(p)}</td><td>${esc(compDate(c))}</td><td>${sf||''}</td><td>${p&&sf?currency0(p/sf):''}</td><td>${esc(c.bedrooms||'')} / ${esc(c.bathrooms||'')}</td><td>${c.distance?Number(c.distance).toFixed(2)+' mi':''}</td><td>${compTier(score)} (${score})</td></tr>`}).join('');
+  const logo=new URL('bcf-logo.png',location.href).href;
+  return `<!doctype html><html><head><title>BearCrest Comp Report</title><style>@page{size:landscape;margin:.45in}body{font-family:Arial;color:#1d2d26;margin:0}.toolbar{background:#173f35;padding:10px;text-align:center}.toolbar button{padding:9px 14px}.head{display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid #c9a34a;padding:12px 0 14px}.head img{width:72px}.head h1{color:#173f35;margin:0}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.metric{border:1px solid #d7e0db;padding:10px;border-radius:7px}.metric small{display:block;color:#66736d}.metric strong{font-size:18px;color:#173f35}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#173f35;color:white}th,td{padding:7px;border:1px solid #d5ddd9;text-align:left}.note{font-size:9px;color:#66736d;margin-top:12px}@media print{.toolbar{display:none}}</style></head><body><div class="toolbar"><button onclick="print()">Print / Save as PDF</button></div><div class="head"><div style="display:flex;gap:12px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding</h1><div>Comparable Sales & Preliminary ARV Report</div></div></div><div><b>${esc(input.address||'')}</b><br>Prepared ${new Date().toLocaleDateString()}</div></div><div class="metrics"><div class="metric"><small>Selected Comps</small><strong>${comps.length}</strong></div><div class="metric"><small>Comp-Based ARV</small><strong>${currency0(autoArv)}</strong></div><div class="metric"><small>ARV Used</small><strong>${currency0(arv)}</strong></div><div class="metric"><small>Automated As-Is Value</small><strong>${currency0(data.price||data.value||0)}</strong></div></div><table><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>$/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th><th>Comp Quality</th></tr></thead><tbody>${rows||'<tr><td colspan="8">No selected comparable sales.</td></tr>'}</tbody></table><div class="note">Preliminary underwriting report only. Comparable quality scoring is automated and must be reviewed by an experienced real-estate professional. Renovation condition is not guaranteed by the data provider.</div></body></html>`;
+}
+function printCompReport(){if(!dealAnalyzerState.data)return alert('Analyze a property first.');const w=window.open('','_blank');if(!w)return alert('Allow pop-ups to create the report.');w.document.write(compReportHtml());w.document.close();}
 function renderDealAnalysis(data,input){
-  const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
-  const manualArv=Number(input.arvOverride||0), analysisValue=manualArv||asIs;
-  const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
-  const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab, grade=dealGrade(spread,roi,allIn,analysisValue);
-  const comps=Array.isArray(data.comparables)?data.comparables:[];
-  const soldPrices=comps.map(c=>Number(c.price||c.lastSalePrice||0)).filter(v=>v>0);
-  const ppsf=comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return price>0&&sf>0?price/sf:0;}).filter(v=>v>0);
-  const medComp=median(soldPrices), medPpsf=median(ppsf);
-  const mismatch=(purchase>0&&high>0&&purchase>high*1.75)||(asIs>0&&purchase>0&&asIs<purchase*.4);
-  const valueLabel=manualArv?'ARV Used for Analysis':'Automated As-Is Value Used';
-  const warnings=[];
-  if(!manualArv)warnings.push('No renovated-comp ARV was entered, so calculations are using RentCast’s automated as-is estimate.');
-  if(mismatch)warnings.push('The purchase price is far outside the returned value range. Confirm the address and review every comp before relying on this result.');
-  if(!comps.length)warnings.push('No comparable sales were returned.');
+  dealAnalyzerState.data=data;dealAnalyzerState.input=input;
+  const subject=data.subjectProperty||data.property||data;
+  const allComps=Array.isArray(data.comparables)?data.comparables:[];
+  const comps=includedComps();
+  const asIs=Number(data.price||data.value||0),low=Number(data.priceRangeLow||data.valueRangeLow||0),high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
+  const calculatedArv=estimatedCompArv(comps,subject),manualArv=Number(input.arvOverride||0),analysisValue=manualArv||calculatedArv||asIs;
+  const purchase=Number(input.purchasePrice||0),rehab=Number(input.rehabBudget||0),closing=Number(input.closingCosts||0),allIn=purchase+rehab+closing;
+  const selling=analysisValue*(Number(input.sellingCostPct||0)/100),spread=analysisValue-allIn-selling,roi=allIn?spread/allIn*100:0,max70=analysisValue*.70-rehab,grade=dealGrade(spread,roi,allIn,analysisValue);
+  const soldPrices=comps.map(compPrice).filter(v=>v>0),ppsf=comps.map(c=>{const p=compPrice(c),sf=compSqft(c);return p&&sf?p/sf:0;}).filter(Boolean);
+  const warnings=[];if(!manualArv)warnings.push('The ARV shown is an automated comp-based estimate. Confirm that the selected comps reflect renovated condition.');if(!allComps.length)warnings.push('No comparable sales were returned.');if(allComps.length&&!comps.length)warnings.push('All comparable sales are excluded.');
   $("dealAnalyzerResults").classList.remove("hidden");
-  $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid">
-    <div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div>
-    <div class="deal-metric"><small>Automated As-Is Range</small><strong>${currency0(low)} – ${currency0(high)}</strong></div>
-    <div class="deal-metric"><small>${valueLabel}</small><strong>${currency0(analysisValue)}</strong></div>
-    <div class="deal-metric"><small>Median Comp Sale</small><strong>${currency0(medComp)}</strong></div>
-    <div class="deal-metric"><small>Median Comp Price / Sq. Ft.</small><strong>${medPpsf?currency0(medPpsf):'—'}</strong></div>
-    <div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div>
-    <div class="deal-metric"><small>Estimated Net Spread</small><strong>${currency0(spread)}</strong></div>
-    <div class="deal-metric"><small>Estimated ROI</small><strong>${roi.toFixed(1)}%</strong></div>
-    <div class="deal-metric"><small>70% Rule Max Purchase</small><strong>${currency0(max70)}</strong></div>
-    <div class="deal-metric"><small>Project Cost / Analysis Value</small><strong>${analysisValue?(allIn/analysisValue*100).toFixed(1):"0.0"}%</strong></div>
-    <div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div>
-  </div><div class="deal-note"><b>Important:</b> Rehab dollars do not automatically increase value dollar-for-dollar. RentCast supplies an automated as-is estimate and sales comps; a true ARV must be supported by renovated comparable sales.${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
-  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return `<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="7">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
+  $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid"><div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div><div class="deal-metric"><small>Comp-Based ARV</small><strong>${currency0(calculatedArv)}</strong></div><div class="deal-metric"><small>ARV Used for Analysis</small><strong>${currency0(analysisValue)}</strong></div><div class="deal-metric"><small>Selected Comps</small><strong>${comps.length} of ${allComps.length}</strong></div><div class="deal-metric"><small>Median Comp Sale</small><strong>${currency0(median(soldPrices))}</strong></div><div class="deal-metric"><small>Median Comp Price / Sq. Ft.</small><strong>${ppsf.length?currency0(median(ppsf)):'—'}</strong></div><div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div><div class="deal-metric"><small>Estimated Net Spread</small><strong>${currency0(spread)}</strong></div><div class="deal-metric"><small>Estimated ROI</small><strong>${roi.toFixed(1)}%</strong></div><div class="deal-metric"><small>70% Rule Max Purchase</small><strong>${currency0(max70)}</strong></div><div class="deal-metric"><small>Project Cost / ARV</small><strong>${analysisValue?(allIn/analysisValue*100).toFixed(1):'0.0'}%</strong></div><div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div></div><div class="deal-note"><b>Important:</b> Rehab dollars do not increase value dollar-for-dollar. Exclude weak comps below and the ARV will recalculate instantly.${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>${dealMapHtml()}<section class="deal-comps"><div class="deal-section-head"><div><h3>Comparable Sales (${allComps.length})</h3><p>Uncheck any property that should not be used. Quality is based on distance, size, beds/baths, and recency.</p></div><button id="printCompReportBtn" type="button">Comp Report PDF</button></div><table><thead><tr><th>Use</th><th>Quality</th><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${allComps.map((c,i)=>{const p=compPrice(c),sf=compSqft(c),score=compScore(c,subject),tier=compTier(score),checked=!dealAnalyzerState.excluded.has(i);return `<tr class="comp-${tier.toLowerCase()} ${checked?'':'comp-excluded'}"><td><input class="comp-use-toggle" type="checkbox" data-comp-index="${i}" ${checked?'checked':''} aria-label="Use comparable ${i+1}"></td><td><span class="comp-quality comp-quality-${tier.toLowerCase()}">${tier} ${score}</span></td><td>${esc(compAddress(c))}</td><td>${currency0(p)}</td><td>${esc(compDate(c))}</td><td>${sf||''}</td><td>${p&&sf?currency0(p/sf):''}</td><td>${esc(c.bedrooms||'')} / ${esc(c.bathrooms||'')}</td><td>${c.distance?Number(c.distance).toFixed(2)+' mi':''}</td></tr>`}).join('')||'<tr><td colspan="9">No comparable sales were returned.</td></tr>'}</tbody></table></section>`;
+  document.querySelectorAll('.comp-use-toggle').forEach(cb=>cb.addEventListener('change',e=>{const i=Number(e.target.dataset.compIndex);if(e.target.checked)dealAnalyzerState.excluded.delete(i);else dealAnalyzerState.excluded.add(i);renderDealAnalysis(dealAnalyzerState.data,dealAnalyzerState.input);}));
+  $("printCompReportBtn")?.addEventListener('click',printCompReport);
+  renderDealMap();
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
   const input={address,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
-  try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
+  try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and nearby sold comps...";dealAnalyzerState.excluded=new Set();const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
 $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
-$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");if(dealAnalyzerState.map)dealAnalyzerState.map.remove();dealAnalyzerState={data:null,input:null,excluded:new Set(),map:null};$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});

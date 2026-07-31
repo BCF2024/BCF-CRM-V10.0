@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#073f2c" />
-  <title>BearCrest Mobile CRM — Version 9.6.1 JotForm Match Fix</title>
+  <title>BearCrest CRM — Version 10.0</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -260,6 +260,7 @@
               <option>Borrower</option><option>Broker</option><option>Realtor</option><option>Title Company</option>
               <option>Insurance Agent</option><option>Attorney</option><option>Lender</option><option>Contractor</option><option>Other</option>
             </select>
+            <button id="syncGoogleContactsBtn" class="primary">Sync Google Contacts</button>
             <button id="exportContactsBtn">Export Contacts</button>
             <label class="import-label">Import CSV<input id="importContactsFile" type="file" accept=".csv,text/csv" hidden /></label>
           </section>
@@ -339,6 +340,7 @@
           <div class="view-heading"><div><h2>BearCrest Deal Analyzer</h2><p>Pull an automated as-is value and comparable sales, then enter a renovated-comp ARV when available.</p></div></div>
           <section class="v5-card deal-analyzer-card">
             <div class="deal-input-grid">
+              <label class="wide">Application / Loan File<select id="dealLoanSelect"><option value="">Select an application / loan file...</option></select></label>
               <label class="wide">Property Address<input id="dealAddress" placeholder="123 Main St, City, ST 12345" /></label>
               <label>Purchase Price<input id="dealPurchasePrice" type="number" step="100" /></label>
               <label>Rehab Budget<input id="dealRehabBudget" type="number" step="100" /></label>
@@ -346,7 +348,7 @@
               <label>Estimated Closing Costs<input id="dealClosingCosts" type="number" step="100" value="0" /></label>
               <label>Estimated Selling Costs (%)<input id="dealSellingCostPct" type="number" step="0.1" value="8" /></label>
             </div>
-            <div class="deal-actions"><button id="analyzeDealBtn" class="primary" type="button">Analyze Deal</button><button id="clearDealBtn" type="button">Clear</button><span id="dealAnalyzerStatus"></span></div>
+            <div class="deal-actions"><button id="loadDealLoanBtn" type="button">Load Application</button><button id="analyzeDealBtn" class="primary" type="button">Analyze Deal</button><button id="createDealPackageBtn" type="button">Create Deal Package PDF</button><button id="clearDealBtn" type="button">Clear</button><span id="dealAnalyzerStatus"></span></div>
           </section>
           <section id="dealAnalyzerResults" class="deal-results hidden"></section>
         </section>
@@ -471,6 +473,7 @@
         <label>Loan Amount<input id="loanAmount" type="number" step="100" /></label>
         <label>Purchase Price<input id="purchasePrice" type="number" step="100" /></label>
         <label>Rehab Budget<input id="rehabBudget" type="number" step="100" /></label>
+        <label>As-Is Value<input id="asIsValue" type="number" step="100" placeholder="Current value before repairs" /></label>
         <label>Estimated ARV<input id="arv" type="number" step="100" /></label>
         <label>Credit Score<input id="fico" type="number" min="300" max="850" /></label>
         <label>Completed Projects<input id="experience" type="number" min="0" /></label>
@@ -487,6 +490,7 @@
         <label>Date Funded<input id="dateFunded" type="date" /></label>
         <label>Interest Rate<input id="interestRate" placeholder="Example: 11.50%" /><small>Used on the editable term sheet.</small></label>
         <label>Origination Points<input id="points" placeholder="Example: 2.00" /></label>
+        <label>BearCrest Processing Fee<input id="processingFee" type="number" step="25" placeholder="Internal lender-submission fee" /><small>Internal field for lender submissions and deal packages.</small></label>
         <label>Loan Term<input id="loanTerm" placeholder="Example: 12 months" /></label>
         <label>LTV / LTC<input id="leverage" placeholder="Example: 75% LTV / 90% LTC" /></label>
         <label>Exit Strategy<input id="exitStrategy" placeholder="Sale, refinance, hold..." /></label>
@@ -499,7 +503,7 @@
           <div class="drive-actions"><button type="button" id="createDriveFolderBtn">Choose Google Drive Folder</button><button type="button" id="openDriveFolderBtn">Prepare Client Folder</button><span id="driveStatus" class="drive-status">Storage folder not selected</span></div>
           <div class="file-upload-row">
             <select id="documentCategory" aria-label="Document category">
-              <option>Identity</option><option>Entity</option><option>Property</option><option>Financial</option><option>Insurance</option><option>Underwriting</option><option>Closing</option><option>Generated Documents</option><option>Other</option>
+              <option>Identity</option><option>Entity</option><option>Contract</option><option>Property</option><option>Financial</option><option>Insurance</option><option>Underwriting</option><option>Closing</option><option>Generated Documents</option><option>Other</option>
             </select>
             <label class="upload-doc-btn">+ Upload Document<input id="clientDocumentInput" type="file" multiple hidden /></label>
           </div>
@@ -552,6 +556,11 @@
       <div class="settings-section"><h3>Investor Application</h3><div class="settings-grid">
         <label>Jotform Form ID<input id="jotformFormId" value="261954251577061" /></label>
         <label>Application Link<input id="jotformUrl" value="https://form.jotform.com/261954251577061" /></label>
+      </div></div>
+      <div class="settings-section"><h3>Smart Address Completion</h3><div class="settings-grid">
+        <label class="wide">Google Maps API Key<input id="googlePlacesApiKey" type="password" placeholder="Optional — enables address suggestions as you type" /><small>Enable Maps JavaScript API and Places API in Google Cloud. The key stays in this browser.</small></label>
+        <label>Address Suggestions<select id="addressAutocompleteEnabled"><option value="on">On</option><option value="off">Off</option></select></label>
+        <div class="wide setup-note">This validates addresses entered inside the CRM. JotForm address autocomplete is configured separately in the JotForm builder; see JOTFORM_ADDRESS_SETUP.txt included with Version 10.</div>
       </div></div>
       <div class="settings-section"><h3>Google Email</h3><div class="settings-grid">
         <label>Sender Display Name<input id="adminEmailSenderName" value="BearCrest Funding, LLC" /></label>

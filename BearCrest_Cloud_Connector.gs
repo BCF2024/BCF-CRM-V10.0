@@ -1,5 +1,5 @@
 const ROOT_FOLDER_NAME = 'BearCrest CRM Documents';
-const SUBFOLDERS = ['Application','Identity','Entity','Property','Financial','Insurance','Underwriting','Closing','Generated Documents','Other'];
+const SUBFOLDERS = ['Application','Identity','Entity','Contract','Property','Financial','Insurance','Underwriting','Closing','Generated Documents','Other'];
 
 const LENDERS_PROPERTY_PREFIX = 'BCF_LENDERS_';
 const LENDERS_COUNT_KEY = 'BCF_LENDERS_CHUNK_COUNT';
@@ -38,6 +38,7 @@ function doPost(e){
     if(action==='deleteLibraryFile')return json_(deleteLibraryFile_(payload));
     if(action==='saveCRMDatabase')return json_(saveCRMDatabase_(payload));
     if(action==='loadCRMDatabase')return json_(loadCRMDatabase_(payload));
+    if(action==='syncGoogleContacts')return json_(syncGoogleContacts_(payload));
 
     if(action==='listLenders')return json_(listLenders_(payload));
     if(action==='saveLender')return json_(saveLender_(payload));
@@ -573,4 +574,44 @@ function createApplicationPdf_(p){
   const pdf=folder.createFile(source.getAs(MimeType.PDF).setName(name));
   source.setTrashed(true);
   return {ok:true,id:pdf.getId(),url:pdf.getUrl(),name:pdf.getName()};
+}
+
+
+// Version 4.1: one-way Google Contacts -> BearCrest CRM sync.
+// Requires the People API advanced service to be enabled in Apps Script.
+function syncGoogleContacts_(){
+  const contacts=[];
+  let pageToken;
+  do{
+    const response=People.People.Connections.list('people/me',{
+      personFields:'names,emailAddresses,phoneNumbers,organizations,addresses,urls',
+      pageSize:1000,
+      pageToken:pageToken||undefined,
+      sortOrder:'FIRST_NAME_ASCENDING'
+    });
+    (response.connections||[]).forEach(function(person){
+      const name=(person.names||[])[0]||{};
+      const emails=person.emailAddresses||[];
+      const phones=person.phoneNumbers||[];
+      const org=(person.organizations||[])[0]||{};
+      const addr=(person.addresses||[])[0]||{};
+      const urls=person.urls||[];
+      contacts.push({
+        resourceName:person.resourceName||'',
+        firstName:name.givenName||'',
+        lastName:name.familyName||'',
+        company:org.name||'',
+        email:(emails[0]&&emails[0].value)||'',
+        phone:(phones[0]&&phones[0].value)||'',
+        phone2:(phones[1]&&phones[1].value)||'',
+        website:(urls[0]&&urls[0].value)||'',
+        address:addr.streetAddress||addr.formattedValue||'',
+        city:addr.city||'',
+        state:addr.region||'',
+        zip:addr.postalCode||''
+      });
+    });
+    pageToken=response.nextPageToken;
+  }while(pageToken);
+  return {ok:true,contacts:contacts,count:contacts.length};
 }

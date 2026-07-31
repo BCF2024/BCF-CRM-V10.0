@@ -1,4 +1,4 @@
-BearCrest CRM Version 6.1
+BearCrest CRM Version 10.0 — Consolidated Weekend Build
 
 This package preserves the Version 6.0 layout and adds a separate Loans page, Communications center, saved email drafts, borrower email history, and collapsible sidebar.
 

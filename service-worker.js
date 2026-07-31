@@ -1,4 +1,4 @@
-const CACHE_NAME="bearcrest-v9-5-deal-matcher-1";
+const CACHE_NAME="bearcrest-v10-0-weekend-build-1";
 const ASSETS=["./","./index.html","./config.js",
   "./app.js","./auth.js","./styles.css","./manifest.json","./bcf-logo.png"];
 self.addEventListener("install",event=>{

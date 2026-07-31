@@ -3,7 +3,7 @@ const OLD_STORAGE_KEY = "bearcrest_loans_v4_1_none";
 const $ = id => document.getElementById(id);
 const STATUSES = ["New Lead","Reviewing","Submitted","Approved","Closing","Closed","Dead","Archived"];
 const DOCS = ["Government-issued ID","Bank/asset statements","Entity documents","Purchase contract","Insurance information","Property photos","Scope of work / budget","Experience worksheet","Lease / rent information","Payoff statement"];
-const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","propertyAddress","loanAmount","purchasePrice","rehabBudget","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural"];
+const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","propertyAddress","loanAmount","purchasePrice","rehabBudget","asIsValue","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","processingFee","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural"];
 let showBoard = false;
 let todayOnly = false;
 let archiveOnly = false;
@@ -197,7 +197,7 @@ $("csvFile").addEventListener("change",async e=>{const f=e.target.files[0];if(!f
 const ADMIN_SETTINGS_KEY="bearcrest_admin_settings_v4_1_clean";
 const SHARED_APPS_SCRIPT_URL=String(window.BEARCREST_CONFIG?.appsScriptUrl||"").trim();
 function validSharedAppsScriptUrl(){return /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(?:[?#].*)?$/.test(SHARED_APPS_SCRIPT_URL);}
-const ADMIN_DEFAULTS={companyName:"BearCrest Funding, LLC",representative:"Joel Vazquez",phone:"423-454-1956",email:"getfunded@bearcrest.com",subtitle:"Investment Real Estate Financing",loanPrefix:"BCF",nextLoanNumber:1001,rootFolder:"BearCrest CRM Documents",endpoint:"",formId:"261954251577061",formUrl:"https://form.jotform.com/261954251577061",emailSenderName:"BearCrest Funding, LLC",emailReplyTo:"getfunded@bearcrest.com",emailSignature:"Thank you,\n\nJoel Vazquez\nBearCrest Funding, LLC\n423-454-1956\ngetfunded@bearcrest.com"};
+const ADMIN_DEFAULTS={companyName:"BearCrest Funding, LLC",representative:"Joel Vazquez",phone:"423-454-1956",email:"getfunded@bearcrest.com",subtitle:"Investment Real Estate Financing",loanPrefix:"BCF",nextLoanNumber:1001,rootFolder:"BearCrest CRM Documents",endpoint:"",formId:"261954251577061",formUrl:"https://form.jotform.com/261954251577061",emailSenderName:"BearCrest Funding, LLC",emailReplyTo:"getfunded@bearcrest.com",emailSignature:"Thank you,\n\nJoel Vazquez\nBearCrest Funding, LLC\n423-454-1956\ngetfunded@bearcrest.com",googlePlacesApiKey:"",addressAutocompleteEnabled:"on"};
 function getAdminSettings(){try{return {...ADMIN_DEFAULTS,...JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY)||"{}")};}catch{return {...ADMIN_DEFAULTS};}}
 function setAdminSettings(v){localStorage.setItem(ADMIN_SETTINGS_KEY,JSON.stringify({...getAdminSettings(),...v}));}
 function company(){const a=getAdminSettings();return {name:a.companyName,representative:a.representative,phone:a.phone,email:a.email,subtitle:a.subtitle};}
@@ -211,7 +211,7 @@ function printable(title,body,opts={}){
   const compact=opts.compact?"compact":"";
   const editable=opts.editable?"editable":"";
   const logoUrl=new URL("bcf-logo.png",window.location.href).href;
-  const controls=opts.editable?`<div class="editor-toolbar"><strong>Editable Document</strong><span>Click anywhere in the highlighted document area to make changes, then print or save as PDF.</span><button onclick="window.print()">Print / Save PDF</button><button onclick="window.close()">Close</button></div>`:"";
+  const controls=opts.editable?`<div class="editor-toolbar"><strong>Editable Document</strong><span>Click anywhere in the highlighted document area to make changes, then print or save as PDF.</span><button onclick="window.print()">Print / Save PDF</button><button type="button" onclick="window.close();return false">Close</button></div>`:"";
   const autoPrint=opts.editable?"":`<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script>`;
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>
   @page{size:Letter;margin:.46in}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;margin:0;color:#24332d;font-size:13px;line-height:1.48;background:white}body.compact{font-size:11.4px;line-height:1.31}body.compact .document-editor{font-size:13.2px;line-height:1.46}body.compact .document-editor ul{font-size:13.2px;line-height:1.4}body.compact .document-editor li{margin:3px 0}body.compact .document-editor .small{font-size:10.5px}.editor-toolbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:10px 16px;background:#173f35;color:#fff;border-bottom:4px solid #c9a34a;box-shadow:0 3px 12px #0003}.editor-toolbar span{flex:1;font-size:12px;opacity:.9}.editor-toolbar button{border:0;border-radius:6px;padding:8px 12px;font-weight:700;cursor:pointer}.page{position:relative;min-height:9.55in;padding-bottom:.42in}.top-rule{height:11px;background:linear-gradient(90deg,#173f35 0 73%,#c9a34a 73% 100%);margin-bottom:13px}.letterhead{display:flex;align-items:center;justify-content:space-between;padding:0 3px 12px;border-bottom:1px solid #d7dfda;margin-bottom:15px}.brand{display:flex;align-items:center;gap:13px}.brand img{width:68px;height:68px;object-fit:contain}.brand h1{margin:0;color:#173f35;font-size:27px;letter-spacing:-.5px}.brand h1 span{color:#a9822f}.brand small{display:block;color:#6b756f;margin-top:2px;letter-spacing:.7px;text-transform:uppercase}.contact{text-align:right;color:#173f35;font-weight:700}.contact div{margin:3px 0}.document-banner{display:flex;justify-content:space-between;align-items:flex-end;background:#173f35;color:#fff;padding:12px 15px;border-left:8px solid #c9a34a;margin:0 0 15px}.document-banner h2{margin:0;font-size:21px;letter-spacing:.3px}.document-banner .date{font-size:11px;text-transform:uppercase;letter-spacing:.5px}.intro{font-size:13.2px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #d6ded9;border-radius:8px;overflow:hidden;margin-bottom:15px}.meta div{padding:8px 11px;border-bottom:1px solid #e0e6e2}.meta div:nth-child(odd){border-right:1px solid #e0e6e2}.meta div:nth-last-child(-n+2){border-bottom:0}.meta strong{color:#173f35}.terms{width:100%;border-collapse:separate;border-spacing:0;margin:10px 0 15px;border:1px solid #ccd6d0;border-radius:8px;overflow:hidden}.terms th,.terms td{border-bottom:1px solid #d9e0dc;padding:8px 10px;text-align:left}.terms tr:last-child th,.terms tr:last-child td{border-bottom:0}.terms th{width:31%;background:#edf3ef;color:#173f35;font-weight:700}.terms td{background:#fff}.editable .terms td[contenteditable="true"],.editable .editable-field,.editable .document-editor{background:#fffdf3;outline:none}.editable .terms td[contenteditable="true"]:focus,.editable .editable-field:focus,.editable .document-editor:focus{box-shadow:inset 0 0 0 2px #c9a34a;background:#fff}.document-editor{padding:2px 3px;border-radius:4px}.section-title{color:#173f35;font-size:14px;text-transform:uppercase;letter-spacing:.7px;margin:15px 0 7px;padding-bottom:4px;border-bottom:2px solid #c9a34a}.notice{background:#fbf7e9;border:1px solid #eadcae;border-left:6px solid #c9a34a;padding:10px 12px;margin:14px 0;border-radius:4px}.decision-box{background:#edf3ef;border:1px solid #cfdbd4;border-left:7px solid #173f35;padding:13px 15px;margin:14px 0}.signature{margin-top:22px}.signature-name{color:#173f35;font-size:15px;font-weight:800}.signature-line{margin-top:30px;border-top:1px solid #555;width:300px;padding-top:5px}.footer{position:fixed;left:.46in;right:.46in;bottom:.16in;border-top:2px solid #c9a34a;padding-top:5px;font-size:9px;color:#66736d;display:flex;justify-content:space-between}ul{margin:7px 0 0;padding-left:22px;columns:${opts.twoColumns?2:1};column-gap:35px}li{margin:5px 0;break-inside:avoid}.check{color:#173f35;font-weight:bold;margin-right:6px}.small{font-size:10px;color:#66736d}.conditions{white-space:pre-line}.one-page{page-break-inside:avoid}.reason-box{border:1px solid #d7dfda;background:#f7f9f8;padding:11px 13px;margin:12px 0;border-radius:6px}@media print{.editor-toolbar{display:none!important}body{background:#fff}.page{min-height:auto}}
@@ -298,8 +298,8 @@ async function ensureDriveFolder(){
   fields.forEach(f=>{if($(f)&&merged[f]!==undefined)$(f).value=merged[f]||""});
   localStorage.setItem(STORAGE_KEY,JSON.stringify(loans));updateDriveUi();return merged;
 }
-function fillAdminSettings(){const a=getAdminSettings();$("adminCompanyName").value=a.companyName;$("adminRepresentative").value=a.representative;$("adminPhone").value=a.phone;$("adminEmail").value=a.email;$("adminSubtitle").value=a.subtitle;$("adminLoanPrefix").value=a.loanPrefix;$("adminNextLoanNumber").value=a.nextLoanNumber;$("adminRootFolder").value=a.rootFolder;$("cloudEndpoint").value=validSharedAppsScriptUrl()?SHARED_APPS_SCRIPT_URL:(a.endpoint||"");$("cloudEndpoint").readOnly=validSharedAppsScriptUrl();$("cloudEndpoint").title=validSharedAppsScriptUrl()?"Shared from config.js and available on every device":"This browser-only fallback is used until config.js is configured";$("jotformFormId").value=a.formId||DEFAULT_FORM_ID;$("jotformUrl").value=a.formUrl||DEFAULT_FORM_URL;$("adminEmailSenderName").value=a.emailSenderName||a.companyName||"BearCrest Funding, LLC";$("adminEmailReplyTo").value=a.emailReplyTo||a.email||"";$("adminEmailSignature").value=a.emailSignature||ADMIN_DEFAULTS.emailSignature;}
-function readAdminSettings(){return {companyName:$("adminCompanyName").value.trim()||ADMIN_DEFAULTS.companyName,representative:$("adminRepresentative").value.trim(),phone:$("adminPhone").value.trim(),email:$("adminEmail").value.trim(),subtitle:$("adminSubtitle").value.trim(),loanPrefix:$("adminLoanPrefix").value.trim().toUpperCase()||"BCF",nextLoanNumber:Number($("adminNextLoanNumber").value||1001),rootFolder:$("adminRootFolder").value.trim()||ADMIN_DEFAULTS.rootFolder,endpoint:validSharedAppsScriptUrl()?SHARED_APPS_SCRIPT_URL:$("cloudEndpoint").value.trim(),formId:$("jotformFormId").value.trim()||DEFAULT_FORM_ID,formUrl:$("jotformUrl").value.trim()||DEFAULT_FORM_URL,emailSenderName:$("adminEmailSenderName").value.trim()||ADMIN_DEFAULTS.emailSenderName,emailReplyTo:$("adminEmailReplyTo").value.trim(),emailSignature:$("adminEmailSignature").value.trim()||ADMIN_DEFAULTS.emailSignature};}
+function fillAdminSettings(){const a=getAdminSettings();$("adminCompanyName").value=a.companyName;$("adminRepresentative").value=a.representative;$("adminPhone").value=a.phone;$("adminEmail").value=a.email;$("adminSubtitle").value=a.subtitle;$("adminLoanPrefix").value=a.loanPrefix;$("adminNextLoanNumber").value=a.nextLoanNumber;$("adminRootFolder").value=a.rootFolder;$("cloudEndpoint").value=validSharedAppsScriptUrl()?SHARED_APPS_SCRIPT_URL:(a.endpoint||"");$("cloudEndpoint").readOnly=validSharedAppsScriptUrl();$("cloudEndpoint").title=validSharedAppsScriptUrl()?"Shared from config.js and available on every device":"This browser-only fallback is used until config.js is configured";$("jotformFormId").value=a.formId||DEFAULT_FORM_ID;$("jotformUrl").value=a.formUrl||DEFAULT_FORM_URL;$("adminEmailSenderName").value=a.emailSenderName||a.companyName||"BearCrest Funding, LLC";$("adminEmailReplyTo").value=a.emailReplyTo||a.email||"";$("adminEmailSignature").value=a.emailSignature||ADMIN_DEFAULTS.emailSignature;$("googlePlacesApiKey").value=a.googlePlacesApiKey||"";$("addressAutocompleteEnabled").value=a.addressAutocompleteEnabled||"on";}
+function readAdminSettings(){return {companyName:$("adminCompanyName").value.trim()||ADMIN_DEFAULTS.companyName,representative:$("adminRepresentative").value.trim(),phone:$("adminPhone").value.trim(),email:$("adminEmail").value.trim(),subtitle:$("adminSubtitle").value.trim(),loanPrefix:$("adminLoanPrefix").value.trim().toUpperCase()||"BCF",nextLoanNumber:Number($("adminNextLoanNumber").value||1001),rootFolder:$("adminRootFolder").value.trim()||ADMIN_DEFAULTS.rootFolder,endpoint:validSharedAppsScriptUrl()?SHARED_APPS_SCRIPT_URL:$("cloudEndpoint").value.trim(),formId:$("jotformFormId").value.trim()||DEFAULT_FORM_ID,formUrl:$("jotformUrl").value.trim()||DEFAULT_FORM_URL,emailSenderName:$("adminEmailSenderName").value.trim()||ADMIN_DEFAULTS.emailSenderName,emailReplyTo:$("adminEmailReplyTo").value.trim(),emailSignature:$("adminEmailSignature").value.trim()||ADMIN_DEFAULTS.emailSignature,googlePlacesApiKey:$("googlePlacesApiKey").value.trim(),addressAutocompleteEnabled:$("addressAutocompleteEnabled").value};}
 $("cloudSetupBtn").onclick=()=>{fillAdminSettings();$("cloudSetupDialog").showModal();};
 $("closeCloudSetupBtn").onclick=()=>$("cloudSetupDialog").close();
 $("cloudSetupForm").addEventListener("submit",e=>{e.preventDefault();setAdminSettings(readAdminSettings());$("cloudSetupDialog").close();updateDriveUi();alert("Admin settings saved. New documents and loan numbers will use these settings.");});
@@ -431,6 +431,7 @@ $("syncApplicationsBtn").onclick=async()=>{
           loanAmount:answerValue(answers,["requested loan amount"]).replace(/[^0-9.]/g,""),
           purchasePrice:answerValue(answers,["purchase price"]).replace(/[^0-9.]/g,""),
           rehabBudget:answerValue(answers,["rehab budget","scope of work"]).replace(/[^0-9.]/g,""),
+          asIsValue:answerValue(answers,["as-is value","as is value","current value","present value"]).replace(/[^0-9.]/g,""),
           arv:answerValue(answers,["estimated arv"]).replace(/[^0-9.]/g,""),
           fico:answerValue(answers,["credit score","fico"]).replace(/[^0-9.]/g,""),
           experience:answerValue(answers,["completed projects","completed flips","flip experience","rehab experience","experience"]).replace(/[^0-9.]/g,""),
@@ -1522,6 +1523,41 @@ $("deleteContactBtn").onclick=()=>{
   const id=$("contactId").value;if(!id||!confirm("Delete this contact?"))return;
   contacts=contacts.filter(c=>c.id!==id);$("contactDialog").close();saveContacts();
 };
+
+function normalizeContactEmail(value){return String(value||"").trim().toLowerCase();}
+function normalizeContactPhone(value){return String(value||"").replace(/\D/g,"").slice(-10);}
+function mergeGoogleContact(item){
+  const email=normalizeContactEmail(item.email), phone=normalizeContactPhone(item.phone);
+  let existing=contacts.find(c=>email&&normalizeContactEmail(c.email)===email);
+  if(!existing&&phone)existing=contacts.find(c=>normalizeContactPhone(c.phone)===phone||normalizeContactPhone(c.phone2)===phone);
+  if(!existing&&item.firstName&&item.lastName)existing=contacts.find(c=>String(c.firstName||"").toLowerCase()===String(item.firstName).toLowerCase()&&String(c.lastName||"").toLowerCase()===String(item.lastName).toLowerCase());
+  const merged={
+    firstName:item.firstName||existing?.firstName||"", lastName:item.lastName||existing?.lastName||"",
+    type:existing?.type||"Other", company:item.company||existing?.company||"", email:item.email||existing?.email||"",
+    phone:item.phone||existing?.phone||"", phone2:item.phone2||existing?.phone2||"", website:item.website||existing?.website||"",
+    address:item.address||existing?.address||"", city:item.city||existing?.city||"", state:item.state||existing?.state||"", zip:item.zip||existing?.zip||"",
+    notes:existing?.notes||"", googleResourceName:item.resourceName||existing?.googleResourceName||"", googleSyncedAt:new Date().toISOString(),
+    updatedAt:new Date().toISOString(), createdAt:existing?.createdAt||new Date().toISOString(), id:existing?.id||uuid(), loanId:existing?.loanId||""
+  };
+  if(existing)Object.assign(existing,merged);else contacts.push(merged);
+  return existing?"updated":"added";
+}
+async function syncGoogleContacts(){
+  if(!cloudConfigured())return alert("Connect the Google Apps Script cloud connector first.");
+  const btn=$("syncGoogleContactsBtn");
+  try{
+    btn.disabled=true;btn.textContent="Syncing...";
+    const out=await cloudCall("syncGoogleContacts",{});
+    let added=0,updated=0;
+    (out.contacts||[]).forEach(item=>{const result=mergeGoogleContact(item);if(result==="added")added++;else updated++;});
+    saveContacts();
+    alert(`Google Contacts sync complete. ${added} added and ${updated} updated.`);
+  }catch(error){
+    alert(`Google Contacts could not sync: ${error.message}\n\nMake sure the People API advanced service is enabled in Apps Script and the web app has been redeployed.`);
+  }finally{btn.disabled=false;btn.textContent="Sync Google Contacts";}
+}
+if($("syncGoogleContactsBtn"))$("syncGoogleContactsBtn").onclick=syncGoogleContacts;
+
 $("exportContactsBtn").onclick=()=>{
   const headers=["First Name","Last Name","Type","Company","Email","Phone","Secondary Phone","Website","Address","City","State","ZIP","Notes"];
   const rows=contacts.map(c=>[c.firstName,c.lastName,c.type,c.company,c.email,c.phone,c.phone2,c.website,c.address,c.city,c.state,c.zip,c.notes]);
@@ -2167,8 +2203,8 @@ function applicationFieldRows(loan){
     ["Loan Number",loan.loanNumber],["Date Received",loan.dateReceived],["Borrower Name",loan.borrowerName],
     ["Phone",loan.phone],["Email",loan.email],["Borrowing Entity",loan.entityName],["Loan Program",loan.program],
     ["Property Address",loan.propertyAddress],["Loan Amount",money(loan.loanAmount)],["Purchase Price",money(loan.purchasePrice)],
-    ["Rehab Budget",money(loan.rehabBudget)],["Estimated ARV",money(loan.arv)],["Target Closing Date",loan.targetClosing],
-    ["Exit Strategy",loan.exitStrategy],["Interest Rate",loan.interestRate],["Origination Points",loan.points],
+    ["Rehab Budget",money(loan.rehabBudget)],["As-Is Value",money(loan.asIsValue)],["Estimated ARV",money(loan.arv)],["Target Closing Date",loan.targetClosing],
+    ["Exit Strategy",loan.exitStrategy],["Interest Rate",loan.interestRate],["Origination Points",loan.points],["BearCrest Processing Fee",money(loan.processingFee)],
     ["Loan Term",loan.loanTerm],["LTV / LTC",loan.leverage],["Status",loan.status],["Assigned Lender",loan.lender],
     ["Other Missing Documents / Needs List",loan.missingDocs],["Notes",loan.notes]
   ];
@@ -2186,7 +2222,7 @@ function applicationPrintHtml(loan){
   const logo=new URL("bcf-logo.png",location.href).href;
   return `<!doctype html><html><head><title>${esc(loan.loanNumber||"BCF")} Application</title><style>
   @page{size:letter;margin:.55in}body{font-family:Arial,sans-serif;color:#17231e;margin:0}.head{display:flex;justify-content:space-between;border-bottom:4px solid #b99a3e;padding-bottom:14px;margin-bottom:20px}.head img{width:82px}.head h1{color:#073f2c;margin:0 0 4px;font-size:23px}.meta{text-align:right;font-size:12px;line-height:1.6}.section-title{color:#073f2c;font-size:16px;margin:22px 0 6px;padding-bottom:5px;border-bottom:2px solid #b99a3e}.app-row{break-inside:avoid;padding:9px 0;border-bottom:1px solid #dce5e0}.app-question{font-size:10px;font-weight:bold;text-transform:uppercase;color:#52645b;margin-bottom:4px}.app-answer{font-size:13px;white-space:pre-wrap;min-height:16px}.blank-line{display:block;border-bottom:1px solid #adb9b3;height:16px}.foot{margin-top:24px;padding-top:10px;border-top:1px solid #bbb;font-size:10px;color:#66736d}.toolbar{position:sticky;top:0;background:#073f2c;padding:10px;text-align:center;z-index:2}.toolbar button{padding:9px 15px;margin:0 5px}.instructions{background:#fff7d6;border:1px solid #d4b658;padding:9px 12px;margin:0 0 16px;font-size:12px}@media print{.toolbar,.instructions{display:none}}
-  </style></head><body><div class="toolbar"><button onclick="print()">Print / Save as PDF</button><button onclick="close()">Close</button></div><div class="instructions">This application was generated from the CRM. Update the loan record and generate it again whenever information changes. Jotform is optional.</div><div class="head"><div style="display:flex;gap:14px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding, LLC</h1><div>Borrower Financing Application</div></div></div><div class="meta"><b>${esc(loan.loanNumber||"")}</b><br>${esc(loan.borrowerName||"")}<br>${esc(loan.propertyAddress||"")}<br>Prepared: ${esc(new Date().toLocaleDateString())}</div></div>${applicationRowsHtml(loan)}<div class="foot">Prepared from information stored in the BearCrest CRM. Any available Jotform answers are included as an additional section; a Jotform submission is not required.</div></body></html>`;
+  </style></head><body><div class="toolbar"><button onclick="print()">Print / Save as PDF</button><button type="button" onclick="window.close();return false">Close</button></div><div class="instructions">This application was generated from the CRM. Update the loan record and generate it again whenever information changes. Jotform is optional.</div><div class="head"><div style="display:flex;gap:14px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding, LLC</h1><div>Borrower Financing Application</div></div></div><div class="meta"><b>${esc(loan.loanNumber||"")}</b><br>${esc(loan.borrowerName||"")}<br>${esc(loan.propertyAddress||"")}<br>Prepared: ${esc(new Date().toLocaleDateString())}</div></div>${applicationRowsHtml(loan)}<div class="foot">Prepared from information stored in the BearCrest CRM. Any available Jotform answers are included as an additional section; a Jotform submission is not required.</div></body></html>`;
 }
 function viewPrintApplication(autoPrint=false){
   const loan=currentLoanRecord();
@@ -2218,7 +2254,60 @@ function median(values){
   const m=Math.floor(nums.length/2);
   return nums.length%2?nums[m]:(nums[m-1]+nums[m])/2;
 }
+
+let lastDealAnalysis=null;
+function refreshDealPackageLoanPicker(){
+  const select=$("dealLoanSelect");
+  if(!select)return;
+  const previous=select.value;
+  select.innerHTML='<option value="">Select an application / loan file...</option>'+loans.map(l=>`<option value="${esc(l.loanId)}">${esc(l.loanNumber||"")} · ${esc(l.borrowerName||"Unnamed")} · ${esc(l.propertyAddress||"No property")}</option>`).join("");
+  if(loans.some(l=>l.loanId===previous))select.value=previous;
+}
+function selectedDealPackageLoan(){
+  return loans.find(l=>l.loanId===$("dealLoanSelect")?.value)||null;
+}
+function loadLoanIntoDealAnalyzer(){
+  const loan=selectedDealPackageLoan();
+  if(!loan)return alert("Select an application or loan file first.");
+  $("dealAddress").value=loan.propertyAddress||"";
+  $("dealPurchasePrice").value=loan.purchasePrice||"";
+  $("dealRehabBudget").value=loan.rehabBudget||"";
+  $("dealArvOverride").value=loan.arv||"";
+  $("dealAnalyzerStatus").textContent=`Loaded ${loan.loanNumber||loan.borrowerName||"application"}. Run Analyze Deal to pull comps.`;
+}
+function dealAnalysisSections(data,input){
+  const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
+  const arv=Number(input.arvOverride||0), analysisValue=arv||asIs;
+  const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
+  const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab;
+  const comps=Array.isArray(data.comparables)?data.comparables:[];
+  const rows=comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return `<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):""}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="7">No comparable sales were returned.</td></tr>';
+  return `<h2 class="section-title">Property Analysis</h2><div class="package-metrics">
+    <div><small>Automated As-Is Value</small><b>${currency0(asIs)}</b></div><div><small>As-Is Range</small><b>${currency0(low)} – ${currency0(high)}</b></div>
+    <div><small>Renovated-Comp ARV</small><b>${arv?currency0(arv):"Not entered"}</b></div><div><small>Total Project Cost</small><b>${currency0(allIn)}</b></div>
+    <div><small>Estimated Net Spread</small><b>${currency0(spread)}</b></div><div><small>Estimated ROI</small><b>${roi.toFixed(1)}%</b></div>
+    <div><small>70% Rule Max Purchase</small><b>${currency0(max70)}</b></div><div><small>Cost / Analysis Value</small><b>${analysisValue?(allIn/analysisValue*100).toFixed(1):"0.0"}%</b></div>
+  </div><div class="package-note"><b>Valuation note:</b> The automated value is an as-is estimate. A final ARV should be supported by renovated comparable sales and lender/appraiser review.</div>
+  <h2 class="section-title">Comparable Sales (${comps.length})</h2><table class="comps-table"><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function dealPackagePrintHtml(loan,analysis){
+  const logo=new URL("bcf-logo.png",location.href).href;
+  return `<!doctype html><html><head><title>${esc(loan.loanNumber||"BCF")} Deal Package</title><style>
+  @page{size:letter;margin:.48in}body{font-family:Arial,sans-serif;color:#17231e;margin:0}.head{display:flex;justify-content:space-between;border-bottom:4px solid #b99a3e;padding-bottom:14px;margin-bottom:18px}.head img{width:78px}.head h1{color:#073f2c;margin:0 0 4px;font-size:23px}.meta{text-align:right;font-size:11px;line-height:1.55}.section-title{color:#073f2c;font-size:16px;margin:20px 0 6px;padding-bottom:5px;border-bottom:2px solid #b99a3e}.app-row{break-inside:avoid;padding:7px 0;border-bottom:1px solid #dce5e0}.app-question{font-size:9px;font-weight:bold;text-transform:uppercase;color:#52645b;margin-bottom:3px}.app-answer{font-size:12px;white-space:pre-wrap;min-height:14px}.blank-line{display:block;border-bottom:1px solid #adb9b3;height:14px}.toolbar{position:sticky;top:0;background:#073f2c;padding:10px;text-align:center;z-index:3}.toolbar button{padding:9px 15px;margin:0 5px}.package-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 14px}.package-metrics div{border:1px solid #d7dfdb;padding:9px;break-inside:avoid}.package-metrics small{display:block;color:#5b6962;font-size:9px;text-transform:uppercase;margin-bottom:4px}.package-metrics b{font-size:13px;color:#073f2c}.package-note{background:#fff7d6;border:1px solid #d4b658;padding:9px;font-size:10px}.comps-table{width:100%;border-collapse:collapse;font-size:9px}.comps-table th,.comps-table td{border:1px solid #ccd6d1;padding:5px;text-align:left}.comps-table th{background:#edf3f0;color:#073f2c}.page-break{break-before:page}.foot{margin-top:20px;padding-top:8px;border-top:1px solid #bbb;font-size:9px;color:#66736d}@media print{.toolbar{display:none}}
+  </style></head><body><div class="toolbar"><button onclick="window.print()">Print / Save as PDF</button><button type="button" onclick="window.close();return false">Close</button></div><div class="head"><div style="display:flex;gap:14px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding, LLC</h1><div>Deal Review Package</div></div></div><div class="meta"><b>${esc(loan.loanNumber||"")}</b><br>${esc(loan.borrowerName||"")}<br>${esc(loan.propertyAddress||"")}<br>Prepared: ${esc(new Date().toLocaleDateString())}</div></div><h2 class="section-title">Borrower Application</h2>${applicationRowsHtml(loan)}<div class="page-break"></div>${dealAnalysisSections(analysis.data,analysis.input)}<div class="foot">For preliminary review only. Automated property data and comparable sales must be independently verified before issuing terms or making a lending decision.</div></body></html>`;
+}
+function createDealPackagePdf(){
+  const loan=selectedDealPackageLoan();
+  if(!loan)return alert("Select the application or loan file to include in the package.");
+  if(!lastDealAnalysis)return alert("Run the Deal Analyzer first so the package can include the property analysis and comps.");
+  const w=window.open("","_blank");
+  if(!w)return alert("Allow pop-ups to create the deal package.");
+  w.document.write(dealPackagePrintHtml(loan,lastDealAnalysis));w.document.close();
+}
 function renderDealAnalysis(data,input){
+  lastDealAnalysis={data,input,generatedAt:new Date().toISOString()};
+  const linkedLoan=selectedDealPackageLoan();
+  if(linkedLoan){linkedLoan.asIsValue=String(Number(data.price||data.value||0)||"");save();}
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
   const manualArv=Number(input.arvOverride||0), analysisValue=manualArv||asIs;
   const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
@@ -2256,7 +2345,11 @@ async function analyzeDeal(){
   try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
 $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
-$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+$("loadDealLoanBtn")?.addEventListener("click",loadLoanIntoDealAnalyzer);
+$("createDealPackageBtn")?.addEventListener("click",createDealPackagePdf);
+$("dealLoanSelect")?.addEventListener("focus",refreshDealPackageLoanPicker);
+refreshDealPackageLoanPicker();
+$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
 
 
 
@@ -2398,3 +2491,34 @@ function runDealMatcher(){
 $("runDealMatchBtn")?.addEventListener("click",runDealMatcher);
 $("loadAugustaDealBtn")?.addEventListener("click",()=>{const vals={matchProgram:"Fix & Flip",matchState:"GA",matchAddress:"Augusta, Georgia",matchFico:640,matchExperience:2,matchPurchase:56000,matchRehab:100000,matchArv:250000,matchLoan:156000,matchLiquidity:"",matchPropertyType:"Single Family",matchRural:"No"};Object.entries(vals).forEach(([id,v])=>$(id).value=v);runDealMatcher();});
 $("clearDealMatchBtn")?.addEventListener("click",()=>{["matchAddress","matchFico","matchExperience","matchPurchase","matchRehab","matchArv","matchLoan","matchLiquidity"].forEach(id=>$(id).value="");$("dealMatcherSummary").classList.add("hidden");$("dealMatcherResults").classList.add("hidden");$("dealMatcherStatus").textContent="";});
+
+
+// ===== BearCrest Version 10.0: Smart Address Completion =====
+let bcfPlacesPromise=null;
+function bcfLoadGooglePlaces(){
+  const a=getAdminSettings();
+  if(a.addressAutocompleteEnabled==="off"||!a.googlePlacesApiKey)return Promise.resolve(false);
+  if(window.google?.maps?.places)return Promise.resolve(true);
+  if(bcfPlacesPromise)return bcfPlacesPromise;
+  bcfPlacesPromise=new Promise((resolve,reject)=>{
+    const cb="bcfPlacesReady"+Date.now();
+    window[cb]=()=>{delete window[cb];resolve(true);};
+    const sc=document.createElement("script");
+    sc.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(a.googlePlacesApiKey)}&libraries=places&callback=${cb}`;
+    sc.async=true;sc.defer=true;sc.onerror=()=>reject(new Error("Address service could not load."));document.head.appendChild(sc);
+  });
+  return bcfPlacesPromise;
+}
+function bcfApplyAddressAutocomplete(){
+  bcfLoadGooglePlaces().then(ok=>{
+    if(!ok||!window.google?.maps?.places)return;
+    ["propertyAddress","dealAddress","matchAddress","contactAddress"].forEach(id=>{
+      const el=$(id);if(!el||el.dataset.placesReady)return;
+      const ac=new google.maps.places.Autocomplete(el,{types:["address"],componentRestrictions:{country:"us"},fields:["formatted_address","address_components","geometry"]});
+      el.dataset.placesReady="1";
+      ac.addListener("place_changed",()=>{const place=ac.getPlace();if(place?.formatted_address)el.value=place.formatted_address;});
+    });
+  }).catch(()=>{});
+}
+document.addEventListener("focusin",e=>{if(["propertyAddress","dealAddress","matchAddress","contactAddress"].includes(e.target?.id))bcfApplyAddressAutocomplete();});
+setTimeout(bcfApplyAddressAutocomplete,800);

@@ -6,7 +6,7 @@ const LENDERS_COUNT_KEY = 'BCF_LENDERS_CHUNK_COUNT';
 const PROPERTY_CHUNK_SIZE = 8000;
 
 const DEFAULT_LENDERS = [
-  'Unitas Funding','Kiavi','Visio Lending','Ternus Lending','Quickline Capital',
+  'Kiavi','Visio Lending','Ternus Lending','Quickline Capital',
   'RCN Capital','Easy Street Capital','IceCap Group','New Silver','Rock Capital',
   'Velocity Mortgage Capital','Deephaven Mortgage','Groundfloor','Anchor Loans',
   'Constructive Capital','EquityMax','First Equity Funding','Capital Funding',
@@ -330,8 +330,10 @@ function createDefaultLenders_(){
     contactName:'',
     email:'',
     phone:'',
-    portalUrl:'', programs:'', states:'', minLoan:0, maxLoan:0, minFico:0, minExperience:0, maxLtv:0, maxLtc:0, maxLtarv:0, foreignNational:'unknown', rural:'unknown', propertyTypes:'', checklist:'',
-    notes:'',
+    portalUrl:'',
+    guidelineUrl:'', profileStatus:'Needs Research', lastVerified:'', programs:'', minFico:'', firstTime:'',
+    minLoan:'', maxLoan:'', maxLtv:'', maxLtc:'', maxLtarv:'', foreignNational:'', rural:'', states:'',
+    why:'', watch:'', exceptions:'', notes:'',
     createdAt:new Date().toISOString(),
     updatedAt:new Date().toISOString()
   }));
@@ -431,8 +433,10 @@ function saveLender_(p){
         contactName:'',
         email:'',
         phone:'',
-        portalUrl:'', programs:'', states:'', minLoan:0, maxLoan:0, minFico:0, minExperience:0, maxLtv:0, maxLtc:0, maxLtarv:0, foreignNational:'unknown', rural:'unknown', propertyTypes:'', checklist:'',
-        notes:'',
+        portalUrl:'',
+        guidelineUrl:'', profileStatus:'Needs Research', lastVerified:'', programs:'', minFico:'', firstTime:'',
+        minLoan:'', maxLoan:'', maxLtv:'', maxLtc:'', maxLtarv:'', foreignNational:'', rural:'', states:'',
+        why:'', watch:'', exceptions:'', notes:'',
         createdAt:now,
         updatedAt:now
       };
@@ -444,10 +448,23 @@ function saveLender_(p){
     lender.email=String(p.email||'').trim();
     lender.phone=String(p.phone||'').trim();
     lender.portalUrl=String(p.portalUrl||'').trim();
-    lender.programs=String(p.programs||'').trim(); lender.states=String(p.states||'').trim();
-    lender.minLoan=Number(p.minLoan||0); lender.maxLoan=Number(p.maxLoan||0); lender.minFico=Number(p.minFico||0); lender.minExperience=Number(p.minExperience||0);
-    lender.maxLtv=Number(p.maxLtv||0); lender.maxLtc=Number(p.maxLtc||0); lender.maxLtarv=Number(p.maxLtarv||0);
-    lender.foreignNational=String(p.foreignNational||'unknown'); lender.rural=String(p.rural||'unknown'); lender.propertyTypes=String(p.propertyTypes||'').trim(); lender.checklist=String(p.checklist||'').trim();
+    lender.guidelineUrl=String(p.guidelineUrl||'').trim();
+    lender.profileStatus=String(p.profileStatus||'Needs Research').trim();
+    lender.lastVerified=String(p.lastVerified||'').trim();
+    lender.programs=String(p.programs||'').trim();
+    lender.minFico=String(p.minFico||'').trim();
+    lender.firstTime=String(p.firstTime||'').trim();
+    lender.minLoan=String(p.minLoan||'').trim();
+    lender.maxLoan=String(p.maxLoan||'').trim();
+    lender.maxLtv=String(p.maxLtv||'').trim();
+    lender.maxLtc=String(p.maxLtc||'').trim();
+    lender.maxLtarv=String(p.maxLtarv||'').trim();
+    lender.foreignNational=String(p.foreignNational||'').trim();
+    lender.rural=String(p.rural||'').trim();
+    lender.states=String(p.states||'').trim();
+    lender.why=String(p.why||'').trim();
+    lender.watch=String(p.watch||'').trim();
+    lender.exceptions=String(p.exceptions||'').trim();
     lender.notes=String(p.notes||'').trim();
     if(typeof p.active==='boolean')lender.active=p.active;
     lender.updatedAt=now;

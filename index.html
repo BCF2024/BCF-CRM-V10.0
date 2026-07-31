@@ -4,10 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#073f2c" />
-  <title>BearCrest Mobile CRM — Version 7.1</title>
+  <title>BearCrest Mobile CRM — Version 6.6</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynS+MeZQ8vq7pYQkzzZxyYf2lH0M=" crossorigin="" />
 </head>
 <body class="auth-locked v5-body">
   <section id="loginScreen" class="login-screen" aria-label="Secure login">
@@ -28,7 +27,7 @@
 
   <div class="mobile-appbar">
     <button id="mobileMenuBtn" aria-label="Open navigation">☰</button>
-    <div><strong>BearCrest Mobile</strong><small>Version 7.1</small></div>
+    <div><strong>BearCrest Mobile</strong><small>Version 6.5</small></div>
     <button id="mobileConnectionStatus" class="connection-status-pill is-checking" type="button" aria-label="Connection status" title="Open connection settings"><i></i><span>Checking</span></button>
     <button id="mobileQuickAddBtn" aria-label="Add loan">＋</button>
   </div>
@@ -54,7 +53,6 @@
         <button class="nav-item" data-view="lenders">▰ <span>Lenders</span></button>
         <button class="nav-item" data-view="documents">▧ <span>Documents</span></button>
         <button class="nav-item" data-view="deal-analyzer">⌂ <span>Deal Analyzer</span></button>
-        <button class="nav-item" data-view="deals">▦ <span>Saved Deals</span></button>
         <button class="nav-item" data-view="communication">✉ <span>Communication</span></button>
         <button class="nav-item" data-view="reports">▥ <span>Reports</span></button>
         <button class="nav-item" data-view="archive">▣ <span>Archive</span></button>
@@ -72,14 +70,14 @@
         <h4>STORAGE</h4>
         <small>Drive Folder</small>
         <strong id="v5StorageName">BearCrest CRM Documents</strong>
-        <button id="v5OpenStorageBtn">OPEN FOLDER</button><button id="installAppBtn">INSTALL APP</button>
+        <button id="v5OpenStorageBtn">OPEN FOLDER</button><button id="installAppBtn" class="hidden">INSTALL APP</button>
       </div>
     </aside>
 
     <div class="workspace">
       <header class="topbar">
         <div>
-          <h1>BEARCREST MOBILE CRM <span>V7.1</span></h1>
+          <h1>BEARCREST MOBILE CRM <span>V6.7</span></h1>
           <p id="viewSubtitle">Business-purpose lending operations dashboard</p>
         </div>
         <div class="top-actions">
@@ -337,7 +335,7 @@
         </section>
 
         <section id="dealAnalyzerView" class="app-view">
-          <div class="view-heading"><div><h2>BearCrest Deal Analyzer</h2><p>Automatically pull nearby sold comps, review them on a map, exclude weak comps, and calculate a preliminary ARV.</p></div></div>
+          <div class="view-heading"><div><h2>BearCrest Deal Analyzer</h2><p>Pull an automated as-is value and comparable sales, then enter a renovated-comp ARV when available.</p></div></div>
           <section class="v5-card deal-analyzer-card">
             <div class="deal-input-grid">
               <label class="wide">Property Address<input id="dealAddress" placeholder="123 Main St, City, ST 12345" /></label>
@@ -346,32 +344,10 @@
               <label>Renovated-Comp ARV (Optional)<input id="dealArvOverride" type="number" step="100" placeholder="Enter ARV supported by renovated comps" /></label>
               <label>Estimated Closing Costs<input id="dealClosingCosts" type="number" step="100" value="0" /></label>
               <label>Estimated Selling Costs (%)<input id="dealSellingCostPct" type="number" step="0.1" value="8" /></label>
-              <label>Loan Program<select id="dealProgram"><option value="Fix & Flip">Fix & Flip</option><option value="DSCR">DSCR</option><option value="Bridge">Bridge</option><option value="Ground-Up Construction">Ground-Up Construction</option><option value="Multifamily">Multifamily</option><option value="Transactional Funding">Transactional Funding</option><option value="Other">Other</option></select></label>
-              <label>Requested Loan Amount<input id="dealLoanAmount" type="number" step="1000" /></label>
-              <label>Borrower FICO<input id="dealFico" type="number" min="300" max="850" /></label>
-              <label>Completed Projects<input id="dealExperience" type="number" min="0" step="1" /></label>
-              <label>Verified Liquidity<input id="dealLiquidity" type="number" step="1000" /></label>
-              <label>Property State<input id="dealState" maxlength="2" placeholder="TN" /></label>
-              <label>Property Type<select id="dealPropertyType"><option>Single Family</option><option>2–4 Unit</option><option>Condo</option><option>Townhome</option><option>Multifamily 5+</option><option>Mixed Use</option><option>Commercial</option><option>Land</option><option>Other</option></select></label>
-              <label>Borrower Type<select id="dealBorrowerType"><option>U.S. Citizen / Resident</option><option>Foreign National</option></select></label>
-              <label>Market Type<select id="dealMarketType"><option>Urban / Suburban</option><option>Rural</option></select></label>
-              <label>Deal Status<select id="dealStatus"><option>New Lead</option><option>Reviewing</option><option>Underwriting</option><option>Approved</option><option>Closed</option><option>Declined</option></select></label>
-              <label class="wide">Documents on Hand<textarea id="dealDocuments" rows="2" placeholder="Purchase contract, scope of work, bank statements, entity docs..."></textarea></label>
-              <label class="wide">Deal Notes<textarea id="dealNotes" rows="3" placeholder="Borrower, lender notes, conditions, or next steps..."></textarea></label>
             </div>
-            <div class="deal-actions"><button id="analyzeDealBtn" class="primary" type="button">Analyze Deal & Pull Comps</button><button id="findLendersBtn" class="gold-action" type="button">Find Best Lenders</button><button id="saveDealBtn" type="button">Save Deal</button><button id="clearDealBtn" type="button">New / Clear</button><span id="dealAnalyzerStatus"></span></div>
-            <section id="lenderMatchResults" class="lender-match-results hidden"></section>
-            <div class="deal-feature-strip"><span>📍 Interactive comp map</span><span>🟢 Best comps</span><span>🟡 Acceptable comps</span><span>🔴 Weak comps</span><span>☑ Exclude & recalculate</span><span>📄 One-click PDF</span></div>
+            <div class="deal-actions"><button id="analyzeDealBtn" class="primary" type="button">Analyze Deal</button><button id="clearDealBtn" type="button">Clear</button><span id="dealAnalyzerStatus"></span></div>
           </section>
           <section id="dealAnalyzerResults" class="deal-results hidden"></section>
-        </section>
-        <section id="savedDealsView" class="app-view">
-          <div class="view-heading"><div><h2>Saved Deals</h2><p>Reopen any property analysis without entering the information again.</p></div><button id="newSavedDealBtn" class="primary" type="button">+ New Deal Analysis</button></div>
-          <section class="saved-deals-summary" id="savedDealsSummary"></section>
-          <section class="v5-card saved-deals-card">
-            <div class="saved-deals-toolbar"><input id="savedDealsSearch" placeholder="Search property address, status, or notes..." /><select id="savedDealsFilter"><option value="all">All Statuses</option><option>New Lead</option><option>Reviewing</option><option>Underwriting</option><option>Approved</option><option>Closed</option><option>Declined</option></select></div>
-            <div id="savedDealsList" class="saved-deals-list"></div>
-          </section>
         </section>
         <section id="placeholderView" class="app-view">
           <div class="view-heading"><div><h2 id="placeholderTitle">Coming Soon</h2><p id="placeholderText"></p></div></div>
@@ -496,26 +472,34 @@
 
         <div id="lenderEditor" class="lender-editor hidden">
           <input type="hidden" id="lenderEditId" />
-          <div class="settings-grid">
+          <div class="settings-grid lender-profile-grid">
             <label>Lender Name<input id="lenderName" placeholder="Example: Kiavi" /></label>
+            <label>Profile Status<select id="lenderProfileStatus"><option>Needs Research</option><option>Needs Confirmation</option><option>Verified</option><option>Exception Only</option></select></label>
             <label>Primary Contact<input id="lenderContactName" placeholder="Contact name" /></label>
             <label>Email<input id="lenderEmail" type="email" placeholder="name@lender.com" /></label>
             <label>Phone<input id="lenderPhone" placeholder="Phone number" /></label>
+            <label>Last Verified<input id="lenderLastVerified" type="date" /></label>
             <label class="wide">Portal / Login Link<input id="lenderPortalUrl" type="url" placeholder="https://..." /></label>
-            <label class="wide">Eligible Programs<input id="lenderPrograms" placeholder="Fix & Flip, DSCR, Bridge" /></label>
-            <label class="wide">Eligible States<input id="lenderStates" placeholder="All or TN, GA, FL" /></label>
-            <label>Minimum Loan<input id="lenderMinLoan" type="number" step="1000" /></label>
-            <label>Maximum Loan<input id="lenderMaxLoan" type="number" step="1000" /></label>
-            <label>Minimum FICO<input id="lenderMinFico" type="number" min="300" max="850" /></label>
-            <label>Minimum Experience<input id="lenderMinExperience" type="number" min="0" /></label>
-            <label>Max Purchase LTV (%)<input id="lenderMaxLtv" type="number" step="0.1" /></label>
-            <label>Max LTC (%)<input id="lenderMaxLtc" type="number" step="0.1" /></label>
-            <label>Max LTARV (%)<input id="lenderMaxLtarv" type="number" step="0.1" /></label>
-            <label>Foreign Nationals<select id="lenderForeignNational"><option value="unknown">Not Entered</option><option value="yes">Eligible</option><option value="no">Not Eligible</option></select></label>
-            <label>Rural Properties<select id="lenderRural"><option value="unknown">Not Entered</option><option value="yes">Eligible</option><option value="no">Not Eligible</option></select></label>
-            <label class="wide">Eligible Property Types<input id="lenderPropertyTypes" placeholder="Single Family, 2–4 Unit, Condo" /></label>
-            <label class="wide">Standard Document Checklist<textarea id="lenderChecklist" rows="3" placeholder="Application, credit report, purchase contract, scope of work, bank statements..."></textarea></label>
-            <label class="wide">Programs, Guidelines & BearCrest Notes<textarea id="lenderNotes" rows="4" placeholder="Turn times, pricing, exceptions, draw process, real-world experience..."></textarea></label>
+            <label class="wide">Guideline / Matrix Link<input id="lenderGuidelineUrl" type="url" placeholder="Link to current matrix, term sheet, or guidelines" /></label>
+
+            <div class="wide lender-section-title">Programs & Core Guidelines</div>
+            <label class="wide">Programs Offered<input id="lenderPrograms" placeholder="Fix & Flip, DSCR, Bridge, Ground-Up, Multifamily..." /></label>
+            <label>Minimum FICO<input id="lenderMinFico" placeholder="Example: 650" /></label>
+            <label>First-Time Investors<select id="lenderFirstTime"><option value="">Unknown</option><option>Yes</option><option>Yes, with conditions</option><option>No</option><option>Exception</option></select></label>
+            <label>Minimum Loan<input id="lenderMinLoan" placeholder="Example: $100,000" /></label>
+            <label>Maximum Loan<input id="lenderMaxLoan" placeholder="Example: $5,000,000" /></label>
+            <label>Max Purchase LTV<input id="lenderMaxLtv" placeholder="Example: 85%" /></label>
+            <label>Max LTC<input id="lenderMaxLtc" placeholder="Example: 90%" /></label>
+            <label>Max LTARV<input id="lenderMaxLtarv" placeholder="Example: 75%" /></label>
+            <label>Foreign Nationals<select id="lenderForeignNational"><option value="">Unknown</option><option>Yes</option><option>Yes, with conditions</option><option>No</option><option>Exception</option></select></label>
+            <label>Rural Properties<select id="lenderRural"><option value="">Unknown</option><option>Yes</option><option>Limited</option><option>No</option><option>Exception</option></select></label>
+            <label>States<input id="lenderStates" placeholder="Nationwide, excluded states, or approved states" /></label>
+
+            <div class="wide lender-section-title">BearCrest Intelligence — Fully Editable</div>
+            <label class="wide">Why This Lender / Best Use<textarea id="lenderWhy" rows="3" placeholder="Great for first-time investors, strong on heavy rehab, fast bridge closings..."></textarea></label>
+            <label class="wide">Things to Watch<textarea id="lenderWatch" rows="3" placeholder="Rural restrictions, conservative ARV, slow draws, higher reserves..."></textarea></label>
+            <label class="wide">Exceptions & Workarounds<textarea id="lenderExceptions" rows="3" placeholder="May allow lower FICO with experience, guarantor option, ask AE before submission..."></textarea></label>
+            <label class="wide">Internal BearCrest Notes<textarea id="lenderNotes" rows="4" placeholder="Your relationship notes, submission experience, contact preferences, and anything else you want to remember..."></textarea></label>
           </div>
           <div class="lender-editor-actions">
             <button type="button" id="cancelLenderBtn">Cancel</button>
@@ -727,7 +711,6 @@ getfunded@bearcrest.com</textarea></label>
     <input id="mobilePickerSearch" placeholder="Search borrower or property..." />
     <div id="mobilePickerList" class="mobile-picker-list"></div>
   </dialog>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script src="auth.js"></script>

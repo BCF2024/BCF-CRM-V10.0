@@ -801,7 +801,7 @@ if($("emailForm"))$("emailForm").addEventListener("submit",async e=>{
 // ===== BearCrest Version 4.0: Funding Partner Management =====
 const LENDER_STORAGE_KEY="bearcrest_lenders_v4_1_clean";
 const DEFAULT_LENDER_NAMES=[
-  "Unitas Funding","Kiavi","Visio Lending","Ternus Lending","Quickline Capital",
+  "Kiavi","Visio Lending","Ternus Lending","Quickline Capital",
   "RCN Capital","Easy Street Capital","IceCap Group","New Silver","Rock Capital",
   "Velocity Mortgage Capital","Deephaven Mortgage","Groundfloor","Anchor Loans",
   "Constructive Capital","EquityMax","First Equity Funding","Capital Funding",
@@ -820,10 +820,23 @@ function normalizeLender(x={},index=0){
     email:String(x.email||""),
     phone:String(x.phone||""),
     portalUrl:String(x.portalUrl||""),
-    programs:String(x.programs||""), states:String(x.states||""),
-    minLoan:Number(x.minLoan||0), maxLoan:Number(x.maxLoan||0), minFico:Number(x.minFico||0), minExperience:Number(x.minExperience||0),
-    maxLtv:Number(x.maxLtv||0), maxLtc:Number(x.maxLtc||0), maxLtarv:Number(x.maxLtarv||0),
-    foreignNational:String(x.foreignNational||"unknown"), rural:String(x.rural||"unknown"), propertyTypes:String(x.propertyTypes||""), checklist:String(x.checklist||""),
+    guidelineUrl:String(x.guidelineUrl||""),
+    profileStatus:String(x.profileStatus||"Needs Research"),
+    lastVerified:String(x.lastVerified||""),
+    programs:String(x.programs||""),
+    minFico:String(x.minFico||""),
+    firstTime:String(x.firstTime||""),
+    minLoan:String(x.minLoan||""),
+    maxLoan:String(x.maxLoan||""),
+    maxLtv:String(x.maxLtv||""),
+    maxLtc:String(x.maxLtc||""),
+    maxLtarv:String(x.maxLtarv||""),
+    foreignNational:String(x.foreignNational||""),
+    rural:String(x.rural||""),
+    states:String(x.states||""),
+    why:String(x.why||""),
+    watch:String(x.watch||""),
+    exceptions:String(x.exceptions||""),
     notes:String(x.notes||""),
     createdAt:x.createdAt||new Date().toISOString(),
     updatedAt:x.updatedAt||new Date().toISOString()
@@ -835,7 +848,7 @@ function defaultLenders(){
 function getLocalLenders(){
   try{
     const stored=JSON.parse(localStorage.getItem(LENDER_STORAGE_KEY)||"null");
-    if(Array.isArray(stored)&&stored.length)return stored.map(normalizeLender);
+    if(Array.isArray(stored)&&stored.length)return stored.map(normalizeLender).filter(l=>l.name.toLowerCase()!=="unitas funding");
   }catch(e){}
   const initial=defaultLenders();
   localStorage.setItem(LENDER_STORAGE_KEY,JSON.stringify(initial));
@@ -851,7 +864,7 @@ async function loadLenders(showMessage=false){
   try{
     if(cloudConfigured()){
       const out=await cloudCall("listLenders",{activeOnly:false});
-      lenders=(out.lenders||[]).map(normalizeLender);
+      lenders=(out.lenders||[]).map(normalizeLender).filter(l=>l.name.toLowerCase()!=="unitas funding");
       localStorage.setItem(LENDER_STORAGE_KEY,JSON.stringify(lenders));
       if(showMessage)$("lenderAdminStatus").textContent="Lenders synchronized with Google Apps Script.";
     }else{
@@ -906,7 +919,11 @@ function renderLenderAdmin(){
         <div class="lender-name-line"><strong>${esc(l.name)}</strong>${l.active===false?'<span class="inactive-pill">Inactive</span>':""}</div>
         <div class="lender-contact">${esc(l.contactName||"No contact saved")}${l.email?` · <a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`:""}${l.phone?` · ${esc(l.phone)}`:""}</div>
         <div class="lender-performance">${s.assigned} assigned · ${s.approved} approved/closing · ${s.funded} funded · ${money(s.volume)||"$0"} volume</div>
-        ${l.programs?`<div class="lender-guideline-chips"><span>${esc(l.programs)}</span>${l.states?`<span>${esc(l.states)}</span>`:""}${l.minFico?`<span>FICO ${l.minFico}+</span>`:""}${l.minLoan?`<span>Min ${money(l.minLoan)}</span>`:""}</div>`:""}${l.notes?`<div class="lender-notes">${esc(l.notes)}</div>`:""}
+        <div class="lender-profile-tags">${l.programs?`<span>${esc(l.programs)}</span>`:""}${l.minFico?`<span>FICO ${esc(l.minFico)}</span>`:""}${l.firstTime?`<span>First-time: ${esc(l.firstTime)}</span>`:""}<span class="status-tag">${esc(l.profileStatus||"Needs Research")}</span></div>
+        ${l.why?`<div class="lender-why"><strong>Why this lender:</strong> ${esc(l.why)}</div>`:""}
+        ${l.watch?`<div class="lender-watch"><strong>Watch:</strong> ${esc(l.watch)}</div>`:""}
+        ${l.notes?`<div class="lender-notes"><strong>BearCrest notes:</strong> ${esc(l.notes)}</div>`:""}
+        <div class="lender-verified">${l.lastVerified?`Last verified ${esc(l.lastVerified)}`:"Not yet verified"}</div>
       </div>
       <div class="lender-row-actions">
         ${l.portalUrl?`<button type="button" onclick="window.open('${esc(l.portalUrl)}','_blank')">Portal</button>`:""}
@@ -919,8 +936,9 @@ function renderLenderAdmin(){
   }).join("")||'<div class="empty-state">No lenders have been added.</div>';
 }
 function clearLenderEditor(){
-  ["lenderEditId","lenderName","lenderContactName","lenderEmail","lenderPhone","lenderPortalUrl","lenderPrograms","lenderStates","lenderMinLoan","lenderMaxLoan","lenderMinFico","lenderMinExperience","lenderMaxLtv","lenderMaxLtc","lenderMaxLtarv","lenderPropertyTypes","lenderChecklist","lenderNotes"].forEach(id=>{if($(id))$(id).value="";});
-  if($("lenderForeignNational"))$("lenderForeignNational").value="unknown";if($("lenderRural"))$("lenderRural").value="unknown";
+  ["lenderEditId","lenderName","lenderContactName","lenderEmail","lenderPhone","lenderPortalUrl","lenderGuidelineUrl","lenderLastVerified","lenderPrograms","lenderMinFico","lenderMinLoan","lenderMaxLoan","lenderMaxLtv","lenderMaxLtc","lenderMaxLtarv","lenderStates","lenderWhy","lenderWatch","lenderExceptions","lenderNotes"].forEach(id=>{if($(id))$(id).value="";});
+  if($("lenderProfileStatus"))$("lenderProfileStatus").value="Needs Research";
+  ["lenderFirstTime","lenderForeignNational","lenderRural"].forEach(id=>{if($(id))$(id).value="";});
   $("lenderEditor")?.classList.add("hidden");
 }
 function openLenderEditor(lender=null){
@@ -931,10 +949,23 @@ function openLenderEditor(lender=null){
   $("lenderEmail").value=lender?.email||"";
   $("lenderPhone").value=lender?.phone||"";
   $("lenderPortalUrl").value=lender?.portalUrl||"";
-  $("lenderPrograms").value=lender?.programs||""; $("lenderStates").value=lender?.states||"";
-  $("lenderMinLoan").value=lender?.minLoan||""; $("lenderMaxLoan").value=lender?.maxLoan||""; $("lenderMinFico").value=lender?.minFico||""; $("lenderMinExperience").value=lender?.minExperience||"";
-  $("lenderMaxLtv").value=lender?.maxLtv||""; $("lenderMaxLtc").value=lender?.maxLtc||""; $("lenderMaxLtarv").value=lender?.maxLtarv||"";
-  $("lenderForeignNational").value=lender?.foreignNational||"unknown"; $("lenderRural").value=lender?.rural||"unknown"; $("lenderPropertyTypes").value=lender?.propertyTypes||""; $("lenderChecklist").value=lender?.checklist||"";
+  $("lenderGuidelineUrl").value=lender?.guidelineUrl||"";
+  $("lenderProfileStatus").value=lender?.profileStatus||"Needs Research";
+  $("lenderLastVerified").value=lender?.lastVerified||"";
+  $("lenderPrograms").value=lender?.programs||"";
+  $("lenderMinFico").value=lender?.minFico||"";
+  $("lenderFirstTime").value=lender?.firstTime||"";
+  $("lenderMinLoan").value=lender?.minLoan||"";
+  $("lenderMaxLoan").value=lender?.maxLoan||"";
+  $("lenderMaxLtv").value=lender?.maxLtv||"";
+  $("lenderMaxLtc").value=lender?.maxLtc||"";
+  $("lenderMaxLtarv").value=lender?.maxLtarv||"";
+  $("lenderForeignNational").value=lender?.foreignNational||"";
+  $("lenderRural").value=lender?.rural||"";
+  $("lenderStates").value=lender?.states||"";
+  $("lenderWhy").value=lender?.why||"";
+  $("lenderWatch").value=lender?.watch||"";
+  $("lenderExceptions").value=lender?.exceptions||"";
   $("lenderNotes").value=lender?.notes||"";
   setTimeout(()=>$("lenderName")?.focus(),0);
 }
@@ -999,10 +1030,24 @@ if($("saveLenderBtn"))$("saveLenderBtn").onclick=async()=>{
     contactName:$("lenderContactName").value.trim(),
     email:$("lenderEmail").value.trim(),
     phone:$("lenderPhone").value.trim(),
-    portalUrl:$("lenderPortalUrl").value.trim(), programs:$("lenderPrograms").value.trim(), states:$("lenderStates").value.trim(),
-    minLoan:Number($("lenderMinLoan").value||0), maxLoan:Number($("lenderMaxLoan").value||0), minFico:Number($("lenderMinFico").value||0), minExperience:Number($("lenderMinExperience").value||0),
-    maxLtv:Number($("lenderMaxLtv").value||0), maxLtc:Number($("lenderMaxLtc").value||0), maxLtarv:Number($("lenderMaxLtarv").value||0),
-    foreignNational:$("lenderForeignNational").value, rural:$("lenderRural").value, propertyTypes:$("lenderPropertyTypes").value.trim(), checklist:$("lenderChecklist").value.trim(),
+    portalUrl:$("lenderPortalUrl").value.trim(),
+    guidelineUrl:$("lenderGuidelineUrl").value.trim(),
+    profileStatus:$("lenderProfileStatus").value,
+    lastVerified:$("lenderLastVerified").value,
+    programs:$("lenderPrograms").value.trim(),
+    minFico:$("lenderMinFico").value.trim(),
+    firstTime:$("lenderFirstTime").value,
+    minLoan:$("lenderMinLoan").value.trim(),
+    maxLoan:$("lenderMaxLoan").value.trim(),
+    maxLtv:$("lenderMaxLtv").value.trim(),
+    maxLtc:$("lenderMaxLtc").value.trim(),
+    maxLtarv:$("lenderMaxLtarv").value.trim(),
+    foreignNational:$("lenderForeignNational").value,
+    rural:$("lenderRural").value,
+    states:$("lenderStates").value.trim(),
+    why:$("lenderWhy").value.trim(),
+    watch:$("lenderWatch").value.trim(),
+    exceptions:$("lenderExceptions").value.trim(),
     notes:$("lenderNotes").value.trim(),
     active:true
   };
@@ -1081,15 +1126,6 @@ function v5ShowView(name){
     $("dealAnalyzerView")?.classList.add("active-view");
     document.querySelector('[data-view="deal-analyzer"]')?.classList.add("active");
     $("viewSubtitle").textContent="Automated property valuation and deal screening";
-    restoreDealDraft();
-    return;
-  }
-
-  if(name==="deals"){
-    $("savedDealsView")?.classList.add("active-view");
-    document.querySelector('[data-view="deals"]')?.classList.add("active");
-    $("viewSubtitle").textContent="Saved property analyses and underwriting history";
-    renderSavedDeals();
     return;
   }
 
@@ -1615,16 +1651,14 @@ window.addEventListener("beforeinstallprompt",event=>{
   $("installAppBtn")?.classList.remove("hidden");
 });
 if($("installAppBtn"))$("installAppBtn").onclick=async()=>{
-  const standalone=window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
-  if(standalone){alert("BearCrest CRM is already installed on this device.");return;}
   if(!deferredInstallPrompt){
-    alert("The CRM can be used in the browser and installed as an app. In Microsoft Edge, open the three-dot menu, choose Apps, then Install BearCrest CRM. In Chrome, use the install icon in the address bar or choose Install app from the menu.");
+    alert("On Android, open the browser menu and choose 'Add to Home screen' or 'Install app'.");
     return;
   }
   deferredInstallPrompt.prompt();
-  const choice=await deferredInstallPrompt.userChoice;
-  if(choice.outcome==="accepted")$("installAppBtn").textContent="APP INSTALLED";
+  await deferredInstallPrompt.userChoice;
   deferredInstallPrompt=null;
+  $("installAppBtn").classList.add("hidden");
 };
 
 if($("mobileMenuBtn"))$("mobileMenuBtn").onclick=()=>{
@@ -2045,26 +2079,6 @@ renderLoansPage();renderCommunicationCenter();
 })();
 
 
-
-// ===== Version 7.0 Saved Deal Analyzer Records =====
-const DEALS_STORAGE_KEY="bcfSavedDealsV1";
-const DEAL_DRAFT_KEY="bcfDealAnalyzerDraftV1";
-let activeSavedDealId="";
-function getSavedDeals(){try{const v=JSON.parse(localStorage.getItem(DEALS_STORAGE_KEY)||"[]");return Array.isArray(v)?v:[];}catch{return [];}}
-function putSavedDeals(v){localStorage.setItem(DEALS_STORAGE_KEY,JSON.stringify(v));}
-function dealInputFromForm(){return {address:$("dealAddress")?.value.trim()||"",purchasePrice:$("dealPurchasePrice")?.value||"",rehabBudget:$("dealRehabBudget")?.value||"",arvOverride:$("dealArvOverride")?.value||"",closingCosts:$("dealClosingCosts")?.value||"0",sellingCostPct:$("dealSellingCostPct")?.value||"8",program:$("dealProgram")?.value||"Fix & Flip",loanAmount:$("dealLoanAmount")?.value||"",fico:$("dealFico")?.value||"",experience:$("dealExperience")?.value||"",liquidity:$("dealLiquidity")?.value||"",state:$("dealState")?.value.trim().toUpperCase()||"",propertyType:$("dealPropertyType")?.value||"Single Family",borrowerType:$("dealBorrowerType")?.value||"U.S. Citizen / Resident",marketType:$("dealMarketType")?.value||"Urban / Suburban",documents:$("dealDocuments")?.value||"",status:$("dealStatus")?.value||"New Lead",notes:$("dealNotes")?.value||""};}
-function fillDealForm(input={}){const map={dealAddress:"address",dealPurchasePrice:"purchasePrice",dealRehabBudget:"rehabBudget",dealArvOverride:"arvOverride",dealClosingCosts:"closingCosts",dealSellingCostPct:"sellingCostPct",dealProgram:"program",dealLoanAmount:"loanAmount",dealFico:"fico",dealExperience:"experience",dealLiquidity:"liquidity",dealState:"state",dealPropertyType:"propertyType",dealBorrowerType:"borrowerType",dealMarketType:"marketType",dealDocuments:"documents",dealStatus:"status",dealNotes:"notes"};Object.entries(map).forEach(([id,key])=>{if($(id)&&input[key]!==undefined)$(id).value=input[key];});}
-function saveDealDraft(){const draft={id:activeSavedDealId,input:dealInputFromForm(),data:dealAnalyzerState.data||null,excluded:[...(dealAnalyzerState.excluded||new Set())],savedAt:new Date().toISOString()};localStorage.setItem(DEAL_DRAFT_KEY,JSON.stringify(draft));}
-function restoreDealDraft(){if(dealAnalyzerState.data||$("dealAddress")?.value)return;try{const d=JSON.parse(localStorage.getItem(DEAL_DRAFT_KEY)||"null");if(!d)return;activeSavedDealId=d.id||"";fillDealForm(d.input||{});if(d.data){dealAnalyzerState.excluded=new Set(d.excluded||[]);renderDealAnalysis(d.data,d.input||{});$("dealAnalyzerStatus").textContent="Previous analysis restored.";}}catch(e){console.warn(e);}}
-function computedDealMetrics(record){const data=record.data||{},input=record.input||{},subject=data.subjectProperty||data.property||data,all=Array.isArray(data.comparables)?data.comparables:[],excluded=new Set(record.excluded||[]),comps=all.filter((_,i)=>!excluded.has(i));const auto=estimatedCompArv(comps,subject),arv=Number(input.arvOverride||0)||auto||Number(data.price||data.value||0),cost=Number(input.purchasePrice||0)+Number(input.rehabBudget||0)+Number(input.closingCosts||0),selling=arv*(Number(input.sellingCostPct||0)/100),spread=arv-cost-selling,roi=cost?spread/cost*100:0;return {arv,cost,spread,roi,comps:comps.length};}
-function saveCurrentDeal(){const input=dealInputFromForm();if(!input.address)return alert("Enter a property address before saving.");const deals=getSavedDeals(),now=new Date().toISOString(),record={id:activeSavedDealId||("deal_"+Date.now()),input,data:dealAnalyzerState.data||null,excluded:[...(dealAnalyzerState.excluded||new Set())],createdAt:now,updatedAt:now};const i=deals.findIndex(d=>d.id===record.id);if(i>=0){record.createdAt=deals[i].createdAt||now;deals[i]=record;}else deals.unshift(record);putSavedDeals(deals);activeSavedDealId=record.id;saveDealDraft();$("dealAnalyzerStatus").textContent="Deal saved. You can reopen it from Saved Deals.";renderSavedDeals();}
-function openSavedDeal(id){const r=getSavedDeals().find(d=>d.id===id);if(!r)return;activeSavedDealId=r.id;fillDealForm(r.input||{});dealAnalyzerState.excluded=new Set(r.excluded||[]);if(r.data)renderDealAnalysis(r.data,r.input||{});else{$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";}saveDealDraft();v5ShowView("deal-analyzer");$("dealAnalyzerStatus").textContent="Saved deal opened.";}
-function deleteSavedDeal(id){const r=getSavedDeals().find(d=>d.id===id);if(!r||!confirm(`Delete the saved analysis for ${r.input?.address||"this property"}?`))return;putSavedDeals(getSavedDeals().filter(d=>d.id!==id));if(activeSavedDealId===id)activeSavedDealId="";renderSavedDeals();}
-function refreshSavedDeal(id){openSavedDeal(id);setTimeout(()=>$("analyzeDealBtn")?.click(),50);}
-function pdfSavedDeal(id){const r=getSavedDeals().find(d=>d.id===id);if(!r?.data)return alert("This saved deal does not have completed comp data yet.");const old={data:dealAnalyzerState.data,input:dealAnalyzerState.input,excluded:dealAnalyzerState.excluded};dealAnalyzerState.data=r.data;dealAnalyzerState.input=r.input;dealAnalyzerState.excluded=new Set(r.excluded||[]);printCompReport();dealAnalyzerState.data=old.data;dealAnalyzerState.input=old.input;dealAnalyzerState.excluded=old.excluded;}
-function renderSavedDeals(){if(!$("savedDealsList"))return;const q=($("savedDealsSearch")?.value||"").toLowerCase(),filter=$("savedDealsFilter")?.value||"all";let deals=getSavedDeals().filter(d=>(filter==="all"||d.input?.status===filter)&&(!q||`${d.input?.address||""} ${d.input?.status||""} ${d.input?.notes||""}`.toLowerCase().includes(q)));const all=getSavedDeals(),active=all.filter(d=>!["Closed","Declined"].includes(d.input?.status)).length,approved=all.filter(d=>d.input?.status==="Approved").length;$("savedDealsSummary").innerHTML=`<div class="deal-metric"><small>Total Saved Deals</small><strong>${all.length}</strong></div><div class="deal-metric"><small>Active Reviews</small><strong>${active}</strong></div><div class="deal-metric"><small>Approved</small><strong>${approved}</strong></div>`;$("savedDealsList").innerHTML=deals.map(d=>{const m=computedDealMetrics(d),date=new Date(d.updatedAt||d.createdAt).toLocaleDateString();return `<article class="saved-deal-row"><div class="saved-deal-main"><strong>${esc(d.input?.address||"Untitled property")}</strong><span class="saved-deal-status">${esc(d.input?.status||"New Lead")}</span><small>Updated ${date}${d.input?.notes?` · ${esc(d.input.notes.slice(0,90))}`:""}</small></div><div class="saved-deal-numbers"><span><small>ARV</small><b>${currency0(m.arv)}</b></span><span><small>Project Cost</small><b>${currency0(m.cost)}</b></span><span><small>Net Spread</small><b>${currency0(m.spread)}</b></span><span><small>ROI</small><b>${m.roi.toFixed(1)}%</b></span></div><div class="saved-deal-actions"><button data-deal-open="${d.id}">Open</button><button data-deal-refresh="${d.id}">Refresh Comps</button><button data-deal-pdf="${d.id}">PDF</button><button data-deal-delete="${d.id}" class="danger-text">Delete</button></div></article>`}).join("")||'<div class="empty-saved-deals"><h3>No saved deals found</h3><p>Analyze a property and click Save Deal. It will remain available after you close or leave the CRM.</p></div>';document.querySelectorAll('[data-deal-open]').forEach(b=>b.onclick=()=>openSavedDeal(b.dataset.dealOpen));document.querySelectorAll('[data-deal-refresh]').forEach(b=>b.onclick=()=>refreshSavedDeal(b.dataset.dealRefresh));document.querySelectorAll('[data-deal-pdf]').forEach(b=>b.onclick=()=>pdfSavedDeal(b.dataset.dealPdf));document.querySelectorAll('[data-deal-delete]').forEach(b=>b.onclick=()=>deleteSavedDeal(b.dataset.dealDelete));}
-window.openSavedDeal=openSavedDeal;
-
 // ===== BearCrest Deal Analyzer + CRM/Jotform Application PDF =====
 function normalizeJotformApplication(submission){
   const answers=submission?.answers||{};
@@ -2124,59 +2138,7 @@ function saveApplicationPdf(){
 $("viewApplicationBtn")?.addEventListener("click",()=>viewPrintApplication(false));
 $("saveApplicationPdfBtn")?.addEventListener("click",saveApplicationPdf);
 
-
-function csvTokens(value){return String(value||"").split(/[,;\n]/).map(x=>x.trim().toLowerCase()).filter(Boolean);}
-function lenderRuleMatch(list,value){const tokens=csvTokens(list);if(!tokens.length)return null;if(tokens.some(t=>t==="all"||t==="nationwide"))return true;return tokens.includes(String(value||"").trim().toLowerCase());}
-function lenderMatchAnalysis(l,input){
-  const reasons=[],warnings=[],fails=[];let scored=0,possible=0;
-  const check=(known,pass,yes,no)=>{if(!known)return;possible+=10;if(pass){scored+=10;reasons.push(yes);}else fails.push(no);};
-  check(!!l.programs,lenderRuleMatch(l.programs,input.program),`Offers ${input.program}`,`Program not listed: ${input.program}`);
-  check(!!l.states,lenderRuleMatch(l.states,input.state),`Lends in ${input.state}`,`State not listed: ${input.state||"not entered"}`);
-  const amount=Number(input.loanAmount||0);check(!!(amount&&(l.minLoan||l.maxLoan)),(!l.minLoan||amount>=l.minLoan)&&(!l.maxLoan||amount<=l.maxLoan),`Loan amount is within range`,`Requested loan is outside entered range`);
-  const fico=Number(input.fico||0);check(!!(fico&&l.minFico),fico>=l.minFico,`FICO meets ${l.minFico}+`,`FICO is below ${l.minFico}`);
-  const exp=Number(input.experience||0);check(!!l.minExperience,exp>=l.minExperience,`Experience meets minimum`,`Needs at least ${l.minExperience} completed project(s)`);
-  check(!!l.propertyTypes,lenderRuleMatch(l.propertyTypes,input.propertyType),`Accepts ${input.propertyType}`,`Property type not listed: ${input.propertyType}`);
-  if(input.borrowerType==="Foreign National")check(l.foreignNational!=="unknown",l.foreignNational==="yes","Foreign nationals eligible","Foreign nationals not eligible");
-  if(input.marketType==="Rural")check(l.rural!=="unknown",l.rural==="yes","Rural properties eligible","Rural properties not eligible");
-  const pp=Number(input.purchasePrice||0),rehab=Number(input.rehabBudget||0),arv=Number(input.arvOverride||0)||estimatedCompArv(includedComps(),dealAnalyzerState.data?.subjectProperty||dealAnalyzerState.data?.property||dealAnalyzerState.data||{}),loan=amount;
-  if(loan&&pp&&l.maxLtv){const v=loan/pp*100;check(true,v<=l.maxLtv,`Purchase LTV ${v.toFixed(1)}% fits`,`Purchase LTV ${v.toFixed(1)}% exceeds ${l.maxLtv}%`);}
-  if(loan&&(pp+rehab)&&l.maxLtc){const v=loan/(pp+rehab)*100;check(true,v<=l.maxLtc,`LTC ${v.toFixed(1)}% fits`,`LTC ${v.toFixed(1)}% exceeds ${l.maxLtc}%`);}
-  if(loan&&arv&&l.maxLtarv){const v=loan/arv*100;check(true,v<=l.maxLtarv,`LTARV ${v.toFixed(1)}% fits`,`LTARV ${v.toFixed(1)}% exceeds ${l.maxLtarv}%`);}
-  if(!possible)warnings.push("No structured guidelines entered yet");
-  const score=possible?Math.round(scored/possible*100):0;
-  return {l,score,reasons,warnings,fails,possible,disqualified:fails.length>0};
-}
-function missingDealDocuments(l,input){const required=csvTokens(l.checklist),have=csvTokens(input.documents);return required.filter(r=>!have.some(h=>h.includes(r)||r.includes(h)));}
-function submissionPackageHtml(match){const input=dealInputFromForm(),l=match.l,missing=missingDealDocuments(l,input),metrics=computedDealMetrics({input,data:dealAnalyzerState.data,excluded:[...(dealAnalyzerState.excluded||new Set())]});const logo=new URL('bcf-logo.png',location.href).href;return `<!doctype html><html><head><title>BearCrest Lender Submission Package</title><style>@page{margin:.55in}body{font-family:Arial;color:#1d2d26}.bar{background:#173f35;color:white;padding:10px;text-align:center}.bar button{padding:9px 14px}.head{display:flex;justify-content:space-between;border-bottom:4px solid #c9a34a;padding:10px 0}.head img{width:75px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px}.row{padding:7px 0;border-bottom:1px solid #ddd}.section{margin-top:18px;color:#173f35;border-bottom:2px solid #c9a34a}.ok{color:#167247}.bad{color:#a12820}li{margin:6px 0}@media print{.bar{display:none}}</style></head><body><div class="bar"><button onclick="print()">Print / Save as PDF</button></div><div class="head"><div style="display:flex;gap:12px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding</h1><div>Lender Submission Summary</div></div></div><div><b>Recommended: ${esc(l.name)}</b><br>${new Date().toLocaleDateString()}</div></div><h2 class="section">Deal Summary</h2><div class="grid"><div class="row"><b>Property</b><br>${esc(input.address)}</div><div class="row"><b>Program</b><br>${esc(input.program)}</div><div class="row"><b>Purchase</b><br>${currency0(input.purchasePrice)}</div><div class="row"><b>Rehab</b><br>${currency0(input.rehabBudget)}</div><div class="row"><b>Requested Loan</b><br>${currency0(input.loanAmount)}</div><div class="row"><b>Estimated ARV</b><br>${currency0(metrics.arv)}</div><div class="row"><b>FICO / Experience</b><br>${esc(input.fico||"Not entered")} / ${esc(input.experience||"0")} projects</div><div class="row"><b>Liquidity</b><br>${currency0(input.liquidity)}</div></div><h2 class="section">Why This Lender Fits</h2><ul>${match.reasons.map(x=>`<li class="ok">✓ ${esc(x)}</li>`).join("")}${match.fails.map(x=>`<li class="bad">⚠ ${esc(x)}</li>`).join("")}</ul><h2 class="section">Document Checklist</h2>${l.checklist?`<ul>${csvTokens(l.checklist).map(x=>`<li class="${missing.includes(x)?'bad':'ok'}">${missing.includes(x)?'☐':'☑'} ${esc(x)}</li>`).join("")}</ul>`:'<p>No lender-specific checklist has been entered.</p>'}<h2 class="section">BearCrest Notes</h2><p>${esc(input.notes||"No deal notes entered.")}</p><p><b>Lender notes:</b> ${esc(l.notes||"No lender notes entered.")}</p><p style="font-size:10px;color:#66736d">Preliminary placement analysis based only on guidelines entered in the BearCrest CRM. Confirm current lender guidelines and pricing before submission.</p></body></html>`;}
-function printSubmissionPackage(lenderId){const match=lenderMatchAnalysis(lenders.find(x=>x.id===lenderId),dealInputFromForm());const w=window.open('','_blank');if(!w)return alert('Allow pop-ups to create the submission package.');w.document.write(submissionPackageHtml(match));w.document.close();}
-function assignMatchedLender(name){const input=dealInputFromForm();let loan=loans.find(x=>x.propertyAddress&&x.propertyAddress.toLowerCase()===input.address.toLowerCase());if(!loan){alert('Save or create the loan in the CRM first, then you can assign this lender to that loan.');return;}loan.lender=name;save();alert(`${name} assigned to ${loan.loanNumber||input.address}.`);}
-function renderLenderMatches(){
-  const input=dealInputFromForm(),box=$("lenderMatchResults");
-  if(!box)return;
-  if(!input.address)return alert("Enter the property address first.");
-  const active=lenders.filter(l=>l.active!==false);
-  const matches=active.map(l=>lenderMatchAnalysis(l,input)).sort((a,b)=>Number(a.disqualified)-Number(b.disqualified)||b.score-a.score||a.l.name.localeCompare(b.l.name));
-  box.classList.remove("hidden");
-  const cards=matches.map((m,i)=>{
-    const missing=missingDealDocuments(m.l,input);
-    const scoreText=m.possible?(m.score+"% of entered rules matched"):"Guidelines incomplete";
-    const reasonHtml=m.reasons.slice(0,4).map(x=>'<span class="match-pass">✓ '+esc(x)+'</span>').join('');
-    const failHtml=m.fails.slice(0,4).map(x=>'<span class="match-fail">⚠ '+esc(x)+'</span>').join('');
-    const warningHtml=m.warnings.map(x=>'<span>ℹ '+esc(x)+'</span>').join('');
-    const meta=(m.l.contactName?esc(m.l.contactName)+' · ':'')+(m.l.email?esc(m.l.email):'')+(missing.length?' · '+missing.length+' checklist item(s) still missing':'');
-    const portal=m.l.portalUrl?'<button type="button" data-portal="'+esc(m.l.portalUrl)+'">Portal</button>':'';
-    return '<article class="lender-match-card '+(m.disqualified?'match-warning':'')+'"><div class="match-rank">'+(i+1)+'</div><div class="match-body"><div class="match-title"><strong>'+esc(m.l.name)+'</strong><span>'+scoreText+'</span></div><div class="match-reasons">'+reasonHtml+failHtml+warningHtml+'</div><div class="match-meta">'+meta+'</div></div><div class="match-actions"><button type="button" data-package="'+m.l.id+'">Submission PDF</button><button type="button" data-assign="'+esc(m.l.name)+'">Assign</button>'+portal+'</div></article>';
-  }).join('');
-  box.innerHTML='<div class="match-head"><div><h3>Best Lender Matches</h3><p>Ranked only from the guidelines saved in your lender knowledge base. Missing rules are shown—not guessed.</p></div><button type="button" id="editGuidelinesBtn">Edit Lender Guidelines</button></div>'+(cards||'<div class="empty-state">Add lender guidelines in Settings first.</div>');
-  box.querySelector('#editGuidelinesBtn')?.addEventListener('click',()=>v5ShowView('lenders'));
-  box.querySelectorAll('[data-package]').forEach(b=>b.onclick=()=>printSubmissionPackage(b.dataset.package));
-  box.querySelectorAll('[data-assign]').forEach(b=>b.onclick=()=>assignMatchedLender(b.dataset.assign));
-  box.querySelectorAll('[data-portal]').forEach(b=>b.onclick=()=>window.open(b.dataset.portal,'_blank'));
-}
-window.printSubmissionPackage=printSubmissionPackage;
-
 function currency0(v){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(Number(v||0));}
-let dealAnalyzerState={data:null,input:null,excluded:new Set(),map:null};
 function dealGrade(spread,roi,allIn,arv){
   const ratio=arv?allIn/arv:1;
   if(spread>=50000&&roi>=20&&ratio<=.75)return "Excellent";
@@ -2190,87 +2152,42 @@ function median(values){
   const m=Math.floor(nums.length/2);
   return nums.length%2?nums[m]:(nums[m-1]+nums[m])/2;
 }
-function compPrice(c){return Number(c.price||c.lastSalePrice||c.salePrice||0);}
-function compSqft(c){return Number(c.squareFootage||c.sqft||0);}
-function compDate(c){return String(c.lastSaleDate||c.listedDate||c.removedDate||c.saleDate||"").slice(0,10);}
-function compAddress(c){return c.formattedAddress||c.addressLine1||c.address||"Comparable property";}
-function compLat(c){return Number(c.latitude||c.lat||c.location?.latitude||0);}
-function compLng(c){return Number(c.longitude||c.lng||c.lon||c.location?.longitude||0);}
-function compScore(c,subject){
-  let score=100;
-  const distance=Number(c.distance||0); if(distance)score-=Math.min(35,distance*18);
-  const ssf=Number(subject.squareFootage||subject.sqft||0), csf=compSqft(c); if(ssf&&csf)score-=Math.min(25,Math.abs(csf-ssf)/ssf*55);
-  const sb=Number(subject.bedrooms||0), cb=Number(c.bedrooms||0); if(sb&&cb)score-=Math.min(12,Math.abs(cb-sb)*6);
-  const sba=Number(subject.bathrooms||0), cba=Number(c.bathrooms||0); if(sba&&cba)score-=Math.min(10,Math.abs(cba-sba)*5);
-  const d=Date.parse(compDate(c)); if(d){const months=(Date.now()-d)/(1000*60*60*24*30.4);score-=Math.min(18,Math.max(0,months-6)*.7);}
-  return Math.max(0,Math.round(score));
-}
-function compTier(score){return score>=75?"Best":score>=55?"Acceptable":"Weak";}
-function includedComps(){return (dealAnalyzerState.data?.comparables||[]).filter((c,i)=>!dealAnalyzerState.excluded.has(i)&&compPrice(c)>0);}
-function estimatedCompArv(comps,subject){
-  const subjectSf=Number(subject.squareFootage||subject.sqft||0);
-  const ppsf=comps.map(c=>{const p=compPrice(c),sf=compSqft(c);return p&&sf?p/sf:0;}).filter(Boolean);
-  if(subjectSf&&ppsf.length)return median(ppsf)*subjectSf;
-  return median(comps.map(compPrice).filter(Boolean));
-}
-function dealMapHtml(){return `<section class="deal-map-card"><div class="deal-section-head"><div><h3>Interactive Comp Map</h3><p>Green = best comp, yellow = acceptable, red = weak, gray = excluded. Click any pin for details.</p></div><div class="map-legend"><span><i class="legend-dot subject"></i>Subject</span><span><i class="legend-dot best"></i>Best</span><span><i class="legend-dot acceptable"></i>Acceptable</span><span><i class="legend-dot weak"></i>Weak</span><span><i class="legend-dot excluded"></i>Excluded</span></div></div><div id="dealCompMap" class="deal-map"><div class="map-placeholder">The map will load after RentCast returns property coordinates.</div></div></section>`;}
-function renderDealMap(){
-  const box=$("dealCompMap"); if(!box||!window.L)return;
-  if(dealAnalyzerState.map){dealAnalyzerState.map.remove();dealAnalyzerState.map=null;}
-  const data=dealAnalyzerState.data||{}, subject=data.subjectProperty||data.property||data;
-  const points=[];
-  const slat=Number(subject.latitude||subject.lat||data.latitude||0),slng=Number(subject.longitude||subject.lng||data.longitude||0);
-  if(slat&&slng)points.push({lat:slat,lng:slng,type:"subject",label:dealAnalyzerState.input?.address||"Subject Property"});
-  (data.comparables||[]).forEach((c,i)=>{const lat=compLat(c),lng=compLng(c);if(lat&&lng)points.push({lat,lng,type:dealAnalyzerState.excluded.has(i)?'excluded':compTier(compScore(c,subject)).toLowerCase(),label:compAddress(c),price:compPrice(c),excluded:dealAnalyzerState.excluded.has(i)});});
-  if(!points.length)return;
-  box.innerHTML="";
-  const map=L.map(box,{scrollWheelZoom:false}); dealAnalyzerState.map=map;
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-  const colors={subject:'#173f35',best:'#198754',acceptable:'#d9a400',weak:'#b42318',excluded:'#7b8790'};
-  points.forEach(p=>{const marker=L.circleMarker([p.lat,p.lng],{radius:p.type==='subject'?10:8,color:'#fff',weight:2,fillColor:colors[p.type]||colors.best,fillOpacity:1}).addTo(map);marker.bindPopup(`<b>${esc(p.label)}</b>${p.price?`<br>${currency0(p.price)}`:''}${p.type==='subject'?'<br>Subject Property':p.excluded?'<br><b>Excluded from ARV</b>':''}`);});
-  map.fitBounds(L.latLngBounds(points.map(p=>[p.lat,p.lng])).pad(.18),{maxZoom:14});
-  setTimeout(()=>map.invalidateSize(),100);
-}
-function compReportHtml(){
-  const data=dealAnalyzerState.data||{},input=dealAnalyzerState.input||{},subject=data.subjectProperty||data.property||data,comps=includedComps();
-  const autoArv=estimatedCompArv(comps,subject),manual=Number(input.arvOverride||0),arv=manual||autoArv||Number(data.price||data.value||0);
-  const rows=comps.map(c=>{const score=compScore(c,subject),p=compPrice(c),sf=compSqft(c);return `<tr><td>${esc(compAddress(c))}</td><td>${currency0(p)}</td><td>${esc(compDate(c))}</td><td>${sf||''}</td><td>${p&&sf?currency0(p/sf):''}</td><td>${esc(c.bedrooms||'')} / ${esc(c.bathrooms||'')}</td><td>${c.distance?Number(c.distance).toFixed(2)+' mi':''}</td><td>${compTier(score)} (${score})</td></tr>`}).join('');
-  const logo=new URL('bcf-logo.png',location.href).href;
-  return `<!doctype html><html><head><title>BearCrest Comp Report</title><style>@page{size:landscape;margin:.45in}body{font-family:Arial;color:#1d2d26;margin:0}.toolbar{background:#173f35;padding:10px;text-align:center}.toolbar button{padding:9px 14px}.head{display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid #c9a34a;padding:12px 0 14px}.head img{width:72px}.head h1{color:#173f35;margin:0}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.metric{border:1px solid #d7e0db;padding:10px;border-radius:7px}.metric small{display:block;color:#66736d}.metric strong{font-size:18px;color:#173f35}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#173f35;color:white}th,td{padding:7px;border:1px solid #d5ddd9;text-align:left}.note{font-size:9px;color:#66736d;margin-top:12px}@media print{.toolbar{display:none}}</style></head><body><div class="toolbar"><button onclick="print()">Print / Save as PDF</button></div><div class="head"><div style="display:flex;gap:12px;align-items:center"><img src="${logo}"><div><h1>BearCrest Funding</h1><div>Comparable Sales & Preliminary ARV Report</div></div></div><div><b>${esc(input.address||'')}</b><br>Prepared ${new Date().toLocaleDateString()}</div></div><div class="metrics"><div class="metric"><small>Selected Comps</small><strong>${comps.length}</strong></div><div class="metric"><small>Comp-Based ARV</small><strong>${currency0(autoArv)}</strong></div><div class="metric"><small>ARV Used</small><strong>${currency0(arv)}</strong></div><div class="metric"><small>Automated As-Is Value</small><strong>${currency0(data.price||data.value||0)}</strong></div></div><table><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>$/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th><th>Comp Quality</th></tr></thead><tbody>${rows||'<tr><td colspan="8">No selected comparable sales.</td></tr>'}</tbody></table><div class="note">Preliminary underwriting report only. Comparable quality scoring is automated and must be reviewed by an experienced real-estate professional. Renovation condition is not guaranteed by the data provider.</div></body></html>`;
-}
-function printCompReport(){if(!dealAnalyzerState.data)return alert('Analyze a property first.');const w=window.open('','_blank');if(!w)return alert('Allow pop-ups to create the report.');w.document.write(compReportHtml());w.document.close();}
 function renderDealAnalysis(data,input){
-  dealAnalyzerState.data=data;dealAnalyzerState.input={...dealInputFromForm(),...input};
-  const subject=data.subjectProperty||data.property||data;
-  const allComps=Array.isArray(data.comparables)?data.comparables:[];
-  const comps=includedComps();
-  const asIs=Number(data.price||data.value||0),low=Number(data.priceRangeLow||data.valueRangeLow||0),high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
-  const calculatedArv=estimatedCompArv(comps,subject),manualArv=Number(input.arvOverride||0),analysisValue=manualArv||calculatedArv||asIs;
-  const purchase=Number(input.purchasePrice||0),rehab=Number(input.rehabBudget||0),closing=Number(input.closingCosts||0),allIn=purchase+rehab+closing;
-  const selling=analysisValue*(Number(input.sellingCostPct||0)/100),spread=analysisValue-allIn-selling,roi=allIn?spread/allIn*100:0,max70=analysisValue*.70-rehab,grade=dealGrade(spread,roi,allIn,analysisValue);
-  const soldPrices=comps.map(compPrice).filter(v=>v>0),ppsf=comps.map(c=>{const p=compPrice(c),sf=compSqft(c);return p&&sf?p/sf:0;}).filter(Boolean);
-  const warnings=[];if(!manualArv)warnings.push('The ARV shown is an automated comp-based estimate. Confirm that the selected comps reflect renovated condition.');if(!allComps.length)warnings.push('No comparable sales were returned.');if(allComps.length&&!comps.length)warnings.push('All comparable sales are excluded.');
+  const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
+  const manualArv=Number(input.arvOverride||0), analysisValue=manualArv||asIs;
+  const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
+  const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab, grade=dealGrade(spread,roi,allIn,analysisValue);
+  const comps=Array.isArray(data.comparables)?data.comparables:[];
+  const soldPrices=comps.map(c=>Number(c.price||c.lastSalePrice||0)).filter(v=>v>0);
+  const ppsf=comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return price>0&&sf>0?price/sf:0;}).filter(v=>v>0);
+  const medComp=median(soldPrices), medPpsf=median(ppsf);
+  const mismatch=(purchase>0&&high>0&&purchase>high*1.75)||(asIs>0&&purchase>0&&asIs<purchase*.4);
+  const valueLabel=manualArv?'ARV Used for Analysis':'Automated As-Is Value Used';
+  const warnings=[];
+  if(!manualArv)warnings.push('No renovated-comp ARV was entered, so calculations are using RentCast’s automated as-is estimate.');
+  if(mismatch)warnings.push('The purchase price is far outside the returned value range. Confirm the address and review every comp before relying on this result.');
+  if(!comps.length)warnings.push('No comparable sales were returned.');
   $("dealAnalyzerResults").classList.remove("hidden");
-  $("dealAnalyzerResults").innerHTML=`<div class="deal-result-toolbar"><div><strong>Comp Selection & ARV</strong><span>Uncheck any comp to recalculate instantly.</span></div><button id="printCompReportTopBtn" type="button" class="primary">One-Click Comp Report PDF</button></div>${dealMapHtml()}<div class="deal-summary-grid"><div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div><div class="deal-metric"><small>Comp-Based ARV</small><strong>${currency0(calculatedArv)}</strong></div><div class="deal-metric"><small>ARV Used for Analysis</small><strong>${currency0(analysisValue)}</strong></div><div class="deal-metric"><small>Selected Comps</small><strong>${comps.length} of ${allComps.length}</strong></div><div class="deal-metric"><small>Median Comp Sale</small><strong>${currency0(median(soldPrices))}</strong></div><div class="deal-metric"><small>Median Comp Price / Sq. Ft.</small><strong>${ppsf.length?currency0(median(ppsf)):'—'}</strong></div><div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div><div class="deal-metric"><small>Estimated Net Spread</small><strong>${currency0(spread)}</strong></div><div class="deal-metric"><small>Estimated ROI</small><strong>${roi.toFixed(1)}%</strong></div><div class="deal-metric"><small>70% Rule Max Purchase</small><strong>${currency0(max70)}</strong></div><div class="deal-metric"><small>Project Cost / ARV</small><strong>${analysisValue?(allIn/analysisValue*100).toFixed(1):'0.0'}%</strong></div><div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div></div><div class="deal-note"><b>Important:</b> Rehab dollars do not increase value dollar-for-dollar. Exclude weak comps below and the ARV will recalculate instantly.${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div><section class="deal-comps"><div class="deal-section-head"><div><h3>Comparable Sales (${allComps.length})</h3><p>Uncheck any property that should not be used. Quality is based on distance, size, beds/baths, and recency.</p></div><button id="printCompReportBtn" type="button">Comp Report PDF</button></div><table><thead><tr><th>Use</th><th>Quality</th><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${allComps.map((c,i)=>{const p=compPrice(c),sf=compSqft(c),score=compScore(c,subject),tier=compTier(score),checked=!dealAnalyzerState.excluded.has(i);return `<tr class="comp-${tier.toLowerCase()} ${checked?'':'comp-excluded'}"><td><input class="comp-use-toggle" type="checkbox" data-comp-index="${i}" ${checked?'checked':''} aria-label="Use comparable ${i+1}"></td><td><span class="comp-quality comp-quality-${tier.toLowerCase()}">${tier} ${score}</span></td><td>${esc(compAddress(c))}</td><td>${currency0(p)}</td><td>${esc(compDate(c))}</td><td>${sf||''}</td><td>${p&&sf?currency0(p/sf):''}</td><td>${esc(c.bedrooms||'')} / ${esc(c.bathrooms||'')}</td><td>${c.distance?Number(c.distance).toFixed(2)+' mi':''}</td></tr>`}).join('')||'<tr><td colspan="9">No comparable sales were returned.</td></tr>'}</tbody></table></section>`;
-  document.querySelectorAll('.comp-use-toggle').forEach(cb=>cb.addEventListener('change',e=>{const i=Number(e.target.dataset.compIndex);if(e.target.checked)dealAnalyzerState.excluded.delete(i);else dealAnalyzerState.excluded.add(i);renderDealAnalysis(dealAnalyzerState.data,dealAnalyzerState.input);}));
-  $("printCompReportBtn")?.addEventListener('click',printCompReport);
-  $("printCompReportTopBtn")?.addEventListener('click',printCompReport);
-  renderDealMap();
-  saveDealDraft();
+  $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid">
+    <div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div>
+    <div class="deal-metric"><small>Automated As-Is Range</small><strong>${currency0(low)} – ${currency0(high)}</strong></div>
+    <div class="deal-metric"><small>${valueLabel}</small><strong>${currency0(analysisValue)}</strong></div>
+    <div class="deal-metric"><small>Median Comp Sale</small><strong>${currency0(medComp)}</strong></div>
+    <div class="deal-metric"><small>Median Comp Price / Sq. Ft.</small><strong>${medPpsf?currency0(medPpsf):'—'}</strong></div>
+    <div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div>
+    <div class="deal-metric"><small>Estimated Net Spread</small><strong>${currency0(spread)}</strong></div>
+    <div class="deal-metric"><small>Estimated ROI</small><strong>${roi.toFixed(1)}%</strong></div>
+    <div class="deal-metric"><small>70% Rule Max Purchase</small><strong>${currency0(max70)}</strong></div>
+    <div class="deal-metric"><small>Project Cost / Analysis Value</small><strong>${analysisValue?(allIn/analysisValue*100).toFixed(1):"0.0"}%</strong></div>
+    <div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div>
+  </div><div class="deal-note"><b>Important:</b> Rehab dollars do not automatically increase value dollar-for-dollar. RentCast supplies an automated as-is estimate and sales comps; a true ARV must be supported by renovated comparable sales.${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
+  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return `<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="7">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
-  const input=dealInputFromForm();
+  const input={address,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
-  try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and nearby sold comps...";dealAnalyzerState.excluded=new Set();const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
+  try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
 $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
-$("saveDealBtn")?.addEventListener("click",saveCurrentDeal);
-$("newSavedDealBtn")?.addEventListener("click",()=>{v5ShowView("deal-analyzer");$("clearDealBtn")?.click();});
-$("savedDealsSearch")?.addEventListener("input",renderSavedDeals);
-$("savedDealsFilter")?.addEventListener("change",renderSavedDeals);
-["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts","dealSellingCostPct","dealStatus","dealNotes"].forEach(id=>$(id)?.addEventListener("input",saveDealDraft));
-$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealNotes"].forEach(id=>$(id).value="");$("dealClosingCosts").value="0";$("dealSellingCostPct").value="8";$("dealStatus").value="New Lead";activeSavedDealId="";localStorage.removeItem(DEAL_DRAFT_KEY);if(dealAnalyzerState.map)dealAnalyzerState.map.remove();dealAnalyzerState={data:null,input:null,excluded:new Set(),map:null};$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
-restoreDealDraft();
-
-$("findLendersBtn")?.addEventListener("click",renderLenderMatches);
+$("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});

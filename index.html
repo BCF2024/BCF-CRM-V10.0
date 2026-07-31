@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#073f2c" />
-  <title>BearCrest Mobile CRM — Version 6.6</title>
+  <title>BearCrest Mobile CRM — Version 6.7 Lender Module</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -349,6 +349,62 @@
           </section>
           <section id="dealAnalyzerResults" class="deal-results hidden"></section>
         </section>
+        <section id="lendersView" class="app-view">
+          <div class="view-heading"><div><h2>Lenders</h2><p>Manage BearCrest funding partners, official guidelines, and your internal lending intelligence.</p></div></div>
+          <div class="v5-card lender-management-section">
+        <div class="settings-heading-row">
+          <div>
+            <h3>Funding Partners & Lenders</h3>
+            <p>Add lenders once, then use them in the Assigned Lender and Final Funding Partner dropdowns.</p>
+          </div>
+          <button type="button" id="newLenderBtn">+ New Lender</button>
+        </div>
+
+        <div id="lenderSummary" class="lender-summary"></div>
+
+        <div id="lenderEditor" class="lender-editor hidden">
+          <input type="hidden" id="lenderEditId" />
+          <div class="settings-grid lender-profile-grid">
+            <label>Lender Name<input id="lenderName" placeholder="Example: Kiavi" /></label>
+            <label>Profile Status<select id="lenderProfileStatus"><option>Needs Research</option><option>Needs Confirmation</option><option>Verified</option><option>Exception Only</option></select></label>
+            <label>Primary Contact<input id="lenderContactName" placeholder="Contact name" /></label>
+            <label>Email<input id="lenderEmail" type="email" placeholder="name@lender.com" /></label>
+            <label>Phone<input id="lenderPhone" placeholder="Phone number" /></label>
+            <label>Last Verified<input id="lenderLastVerified" type="date" /></label>
+            <label class="wide">Portal / Login Link<input id="lenderPortalUrl" type="url" placeholder="https://..." /></label>
+            <label class="wide">Guideline / Matrix Link<input id="lenderGuidelineUrl" type="url" placeholder="Link to current matrix, term sheet, or guidelines" /></label>
+
+            <div class="wide lender-section-title">Programs & Core Guidelines</div>
+            <label class="wide">Programs Offered<input id="lenderPrograms" placeholder="Fix & Flip, DSCR, Bridge, Ground-Up, Multifamily..." /></label>
+            <label>Minimum FICO<input id="lenderMinFico" placeholder="Example: 650" /></label>
+            <label>First-Time Investors<select id="lenderFirstTime"><option value="">Unknown</option><option>Yes</option><option>Yes, with conditions</option><option>No</option><option>Exception</option></select></label>
+            <label>Minimum Loan<input id="lenderMinLoan" placeholder="Example: $100,000" /></label>
+            <label>Maximum Loan<input id="lenderMaxLoan" placeholder="Example: $5,000,000" /></label>
+            <label>Max Purchase LTV<input id="lenderMaxLtv" placeholder="Example: 85%" /></label>
+            <label>Max LTC<input id="lenderMaxLtc" placeholder="Example: 90%" /></label>
+            <label>Max LTARV<input id="lenderMaxLtarv" placeholder="Example: 75%" /></label>
+            <label>Foreign Nationals<select id="lenderForeignNational"><option value="">Unknown</option><option>Yes</option><option>Yes, with conditions</option><option>No</option><option>Exception</option></select></label>
+            <label>Rural Properties<select id="lenderRural"><option value="">Unknown</option><option>Yes</option><option>Limited</option><option>No</option><option>Exception</option></select></label>
+            <label>States<input id="lenderStates" placeholder="Nationwide, excluded states, or approved states" /></label>
+
+            <div class="wide lender-section-title">BearCrest Intelligence — Fully Editable</div>
+            <label class="wide">Why This Lender / Best Use<textarea id="lenderWhy" rows="3" placeholder="Great for first-time investors, strong on heavy rehab, fast bridge closings..."></textarea></label>
+            <label class="wide">Things to Watch<textarea id="lenderWatch" rows="3" placeholder="Rural restrictions, conservative ARV, slow draws, higher reserves..."></textarea></label>
+            <label class="wide">Exceptions & Workarounds<textarea id="lenderExceptions" rows="3" placeholder="May allow lower FICO with experience, guarantor option, ask AE before submission..."></textarea></label>
+            <label class="wide">Internal BearCrest Notes<textarea id="lenderNotes" rows="4" placeholder="Your relationship notes, submission experience, contact preferences, and anything else you want to remember..."></textarea></label>
+          </div>
+          <div class="lender-editor-actions">
+            <button type="button" id="cancelLenderBtn">Cancel</button>
+            <button type="button" id="saveLenderBtn" class="primary">Save Lender</button>
+          </div>
+        </div>
+
+        <div id="lenderAdminStatus" class="lender-admin-status"></div>
+        <div id="lenderList" class="lender-list"></div>
+          </div>
+        </section>
+
+
         <section id="placeholderView" class="app-view">
           <div class="view-heading"><div><h2 id="placeholderTitle">Coming Soon</h2><p id="placeholderText"></p></div></div>
           <div class="v5-card empty-module">
@@ -459,57 +515,6 @@
         <label>Jotform Form ID<input id="jotformFormId" value="261954251577061" /></label>
         <label>Application Link<input id="jotformUrl" value="https://form.jotform.com/261954251577061" /></label>
       </div></div>
-      <div class="settings-section lender-management-section">
-        <div class="settings-heading-row">
-          <div>
-            <h3>Funding Partners & Lenders</h3>
-            <p>Add lenders once, then use them in the Assigned Lender and Final Funding Partner dropdowns.</p>
-          </div>
-          <button type="button" id="newLenderBtn">+ New Lender</button>
-        </div>
-
-        <div id="lenderSummary" class="lender-summary"></div>
-
-        <div id="lenderEditor" class="lender-editor hidden">
-          <input type="hidden" id="lenderEditId" />
-          <div class="settings-grid lender-profile-grid">
-            <label>Lender Name<input id="lenderName" placeholder="Example: Kiavi" /></label>
-            <label>Profile Status<select id="lenderProfileStatus"><option>Needs Research</option><option>Needs Confirmation</option><option>Verified</option><option>Exception Only</option></select></label>
-            <label>Primary Contact<input id="lenderContactName" placeholder="Contact name" /></label>
-            <label>Email<input id="lenderEmail" type="email" placeholder="name@lender.com" /></label>
-            <label>Phone<input id="lenderPhone" placeholder="Phone number" /></label>
-            <label>Last Verified<input id="lenderLastVerified" type="date" /></label>
-            <label class="wide">Portal / Login Link<input id="lenderPortalUrl" type="url" placeholder="https://..." /></label>
-            <label class="wide">Guideline / Matrix Link<input id="lenderGuidelineUrl" type="url" placeholder="Link to current matrix, term sheet, or guidelines" /></label>
-
-            <div class="wide lender-section-title">Programs & Core Guidelines</div>
-            <label class="wide">Programs Offered<input id="lenderPrograms" placeholder="Fix & Flip, DSCR, Bridge, Ground-Up, Multifamily..." /></label>
-            <label>Minimum FICO<input id="lenderMinFico" placeholder="Example: 650" /></label>
-            <label>First-Time Investors<select id="lenderFirstTime"><option value="">Unknown</option><option>Yes</option><option>Yes, with conditions</option><option>No</option><option>Exception</option></select></label>
-            <label>Minimum Loan<input id="lenderMinLoan" placeholder="Example: $100,000" /></label>
-            <label>Maximum Loan<input id="lenderMaxLoan" placeholder="Example: $5,000,000" /></label>
-            <label>Max Purchase LTV<input id="lenderMaxLtv" placeholder="Example: 85%" /></label>
-            <label>Max LTC<input id="lenderMaxLtc" placeholder="Example: 90%" /></label>
-            <label>Max LTARV<input id="lenderMaxLtarv" placeholder="Example: 75%" /></label>
-            <label>Foreign Nationals<select id="lenderForeignNational"><option value="">Unknown</option><option>Yes</option><option>Yes, with conditions</option><option>No</option><option>Exception</option></select></label>
-            <label>Rural Properties<select id="lenderRural"><option value="">Unknown</option><option>Yes</option><option>Limited</option><option>No</option><option>Exception</option></select></label>
-            <label>States<input id="lenderStates" placeholder="Nationwide, excluded states, or approved states" /></label>
-
-            <div class="wide lender-section-title">BearCrest Intelligence — Fully Editable</div>
-            <label class="wide">Why This Lender / Best Use<textarea id="lenderWhy" rows="3" placeholder="Great for first-time investors, strong on heavy rehab, fast bridge closings..."></textarea></label>
-            <label class="wide">Things to Watch<textarea id="lenderWatch" rows="3" placeholder="Rural restrictions, conservative ARV, slow draws, higher reserves..."></textarea></label>
-            <label class="wide">Exceptions & Workarounds<textarea id="lenderExceptions" rows="3" placeholder="May allow lower FICO with experience, guarantor option, ask AE before submission..."></textarea></label>
-            <label class="wide">Internal BearCrest Notes<textarea id="lenderNotes" rows="4" placeholder="Your relationship notes, submission experience, contact preferences, and anything else you want to remember..."></textarea></label>
-          </div>
-          <div class="lender-editor-actions">
-            <button type="button" id="cancelLenderBtn">Cancel</button>
-            <button type="button" id="saveLenderBtn" class="primary">Save Lender</button>
-          </div>
-        </div>
-
-        <div id="lenderAdminStatus" class="lender-admin-status"></div>
-        <div id="lenderList" class="lender-list"></div>
-      </div>
       <div class="settings-section"><h3>Google Email</h3><div class="settings-grid">
         <label>Sender Display Name<input id="adminEmailSenderName" value="BearCrest Funding, LLC" /></label>
         <label>Reply-To Email<input id="adminEmailReplyTo" type="email" value="getfunded@bearcrest.com" /></label>

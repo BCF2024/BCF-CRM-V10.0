@@ -1101,7 +1101,7 @@ const V5_PLACEHOLDERS={
   calendar:["Calendar","Closing dates and follow-up dates will be organized here.","Calendar"],
   tasks:["Tasks","A focused task center for outstanding loan work.","Tasks"],
   contacts:["Contacts","Borrowers, brokers, Realtors, title contacts, and insurance contacts.","Contacts"],
-  lenders:["Lenders","Manage lender contacts and guidelines from Settings.","Funding Partners"],
+  lenders:["Lenders","Manage lender contacts, guidelines, and BearCrest notes.","Funding Partners"],
   documents:["Documents","Loan documents remain accessible inside each loan file.","Documents"],
   communication:["Communication","Sent-email activity is stored inside each loan.","Communication"],
   reports:["Reports","Production and lender-performance reporting will live here.","Reports"],
@@ -1129,6 +1129,14 @@ function v5ShowView(name){
     return;
   }
 
+  if(name==="lenders"){
+    $("lendersView")?.classList.add("active-view");
+    document.querySelector('[data-view="lenders"]')?.classList.add("active");
+    $("viewSubtitle").textContent="Funding partner guidelines and BearCrest lender intelligence";
+    loadLenders(true);
+    return;
+  }
+
   if(name==="pipeline"||name==="loans"){
     $("pipelineView").classList.add("active-view");
     document.querySelector(`[data-view="${name}"]`)?.classList.add("active");
@@ -1145,11 +1153,6 @@ function v5ShowView(name){
   $("placeholderText").textContent=info[1];
   $("placeholderCardTitle").textContent=info[2];
   $("viewSubtitle").textContent=info[0];
-  if(name==="lenders"){
-    fillAdminSettings();
-    $("cloudSetupDialog").showModal();
-    setTimeout(()=>document.querySelector(".lender-management-section")?.scrollIntoView({behavior:"smooth"}),100);
-  }
   if(name==="archive"){
     archiveOnly=true;
     $("statusFilter").value="Archived";

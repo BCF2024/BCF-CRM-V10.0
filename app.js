@@ -799,15 +799,25 @@ if($("emailForm"))$("emailForm").addEventListener("submit",async e=>{
 });
 
 // ===== BearCrest Version 4.0: Funding Partner Management =====
-const LENDER_STORAGE_KEY="bearcrest_lenders_v4_1_clean";
+const LENDER_STORAGE_KEY="bearcrest_lenders_v4_2_tags";
 const DEFAULT_LENDER_NAMES=[
-  "Kiavi","Visio Lending","Ternus Lending","Quickline Capital",
-  "RCN Capital","Easy Street Capital","IceCap Group","New Silver","Rock Capital",
-  "Velocity Mortgage Capital","Deephaven Mortgage","Groundfloor","Anchor Loans",
-  "Constructive Capital","EquityMax","First Equity Funding","Capital Funding",
-  "Lendo One","ABL Funding","A&D Mortgages","Tidal Loans","Cogo Capital",
-  "Private Capital","Other"
+  "Flipco","Easy Street Capital","New Silver","Ternus Lending","RCN Capital","Kiavi"
 ];
+const LENDER_TAGS=[
+  "First-Time Friendly","Experienced Investor Preferred","Flexible Credit","Foreign National","ITIN Accepted","Entity Required",
+  "Fix & Flip","Bridge","DSCR","Ground-Up","Multifamily","Commercial","Transactional",
+  "Rural Allowed","Mixed-Use","Condo","Townhome","Heavy Rehab","New Construction",
+  "Fast Closing","Great Communication","Flexible Underwriting","Preferred Lender","Competitive Pricing","Easy Draw Process",
+  "No Rural","No Owner Occupied","Conservative ARV","Higher Reserves"
+];
+const STARTER_LENDER_PROFILES={
+  "Flipco":{programs:"Fix & Flip, Bridge",profileStatus:"Needs Research",tags:["Fix & Flip","Bridge"],why:"Starter profile added for BearCrest research."},
+  "Easy Street Capital":{programs:"Fix & Flip, Bridge",profileStatus:"Needs Research",tags:["Fix & Flip","Bridge"],why:"Starter profile added for BearCrest research."},
+  "New Silver":{programs:"Fix & Flip, DSCR, Ground-Up",profileStatus:"Needs Research",tags:["Fix & Flip","DSCR","Ground-Up"],why:"Starter profile added for BearCrest research."},
+  "Ternus Lending":{programs:"Fix & Flip, Ground-Up",profileStatus:"Needs Research",tags:["Fix & Flip","Ground-Up"],why:"Starter profile added for BearCrest research."},
+  "RCN Capital":{programs:"Fix & Flip, Bridge, DSCR, Ground-Up",profileStatus:"Needs Research",tags:["Fix & Flip","Bridge","DSCR","Ground-Up"],why:"Starter profile added for BearCrest research."},
+  "Kiavi":{programs:"Fix & Flip, Bridge, DSCR",profileStatus:"Needs Research",tags:["Fix & Flip","Bridge","DSCR"],why:"Starter profile added for BearCrest research."}
+};
 let lenders=[];
 
 function normalizeLender(x={},index=0){
@@ -838,12 +848,13 @@ function normalizeLender(x={},index=0){
     watch:String(x.watch||""),
     exceptions:String(x.exceptions||""),
     notes:String(x.notes||""),
+    tags:Array.isArray(x.tags)?x.tags.map(String):String(x.tags||"").split("|").map(v=>v.trim()).filter(Boolean),
     createdAt:x.createdAt||new Date().toISOString(),
     updatedAt:x.updatedAt||new Date().toISOString()
   };
 }
 function defaultLenders(){
-  return DEFAULT_LENDER_NAMES.map((name,index)=>normalizeLender({name},index));
+  return DEFAULT_LENDER_NAMES.map((name,index)=>normalizeLender({name,...(STARTER_LENDER_PROFILES[name]||{})},index));
 }
 function getLocalLenders(){
   try{
@@ -919,7 +930,7 @@ function renderLenderAdmin(){
         <div class="lender-name-line"><strong>${esc(l.name)}</strong>${l.active===false?'<span class="inactive-pill">Inactive</span>':""}</div>
         <div class="lender-contact">${esc(l.contactName||"No contact saved")}${l.email?` · <a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`:""}${l.phone?` · ${esc(l.phone)}`:""}</div>
         <div class="lender-performance">${s.assigned} assigned · ${s.approved} approved/closing · ${s.funded} funded · ${money(s.volume)||"$0"} volume</div>
-        <div class="lender-profile-tags">${l.programs?`<span>${esc(l.programs)}</span>`:""}${l.minFico?`<span>FICO ${esc(l.minFico)}</span>`:""}${l.firstTime?`<span>First-time: ${esc(l.firstTime)}</span>`:""}<span class="status-tag">${esc(l.profileStatus||"Needs Research")}</span></div>
+        <div class="lender-profile-tags">${(l.tags||[]).map(tag=>`<span class="intelligence-tag">${esc(tag)}</span>`).join("")}${l.minFico?`<span>FICO ${esc(l.minFico)}</span>`:""}<span class="status-tag">${esc(l.profileStatus||"Needs Research")}</span></div>
         ${l.why?`<div class="lender-why"><strong>Why this lender:</strong> ${esc(l.why)}</div>`:""}
         ${l.watch?`<div class="lender-watch"><strong>Watch:</strong> ${esc(l.watch)}</div>`:""}
         ${l.notes?`<div class="lender-notes"><strong>BearCrest notes:</strong> ${esc(l.notes)}</div>`:""}
@@ -935,10 +946,35 @@ function renderLenderAdmin(){
     </div>`;
   }).join("")||'<div class="empty-state">No lenders have been added.</div>';
 }
+function renderLenderTagPicker(selected=[]){
+  const picker=$("lenderTagPicker");
+  if(!picker)return;
+  const chosen=new Set(selected||[]);
+  picker.innerHTML=LENDER_TAGS.map(tag=>`<button type="button" class="lender-tag-option ${chosen.has(tag)?"selected":""}" data-lender-tag="${esc(tag)}">${chosen.has(tag)?"✓ ":""}${esc(tag)}</button>`).join("");
+  picker.querySelectorAll("[data-lender-tag]").forEach(button=>button.addEventListener("click",()=>{
+    button.classList.toggle("selected");
+    const tag=button.dataset.lenderTag;
+    button.textContent=(button.classList.contains("selected")?"✓ ":"")+tag;
+    generateWhyFromTags();
+  }));
+}
+function selectedLenderTags(){
+  return [...document.querySelectorAll("#lenderTagPicker .lender-tag-option.selected")].map(button=>button.dataset.lenderTag);
+}
+function generateWhyFromTags(){
+  const why=$("lenderWhy");
+  if(!why||why.dataset.userEdited==="true")return;
+  const tags=selectedLenderTags();
+  if(!tags.length){why.value="";return;}
+  const positive=tags.filter(t=>!["No Rural","No Owner Occupied","Conservative ARV","Higher Reserves"].includes(t));
+  why.value=positive.length?`Strong fit for: ${positive.join(", ")}.`:"";
+}
 function clearLenderEditor(){
   ["lenderEditId","lenderName","lenderContactName","lenderEmail","lenderPhone","lenderPortalUrl","lenderGuidelineUrl","lenderLastVerified","lenderPrograms","lenderMinFico","lenderMinLoan","lenderMaxLoan","lenderMaxLtv","lenderMaxLtc","lenderMaxLtarv","lenderStates","lenderWhy","lenderWatch","lenderExceptions","lenderNotes"].forEach(id=>{if($(id))$(id).value="";});
   if($("lenderProfileStatus"))$("lenderProfileStatus").value="Needs Research";
   ["lenderFirstTime","lenderForeignNational","lenderRural"].forEach(id=>{if($(id))$(id).value="";});
+  renderLenderTagPicker([]);
+  if($("lenderWhy"))delete $("lenderWhy").dataset.userEdited;
   $("lenderEditor")?.classList.add("hidden");
 }
 function openLenderEditor(lender=null){
@@ -967,6 +1003,11 @@ function openLenderEditor(lender=null){
   $("lenderWatch").value=lender?.watch||"";
   $("lenderExceptions").value=lender?.exceptions||"";
   $("lenderNotes").value=lender?.notes||"";
+  renderLenderTagPicker(lender?.tags||[]);
+  if($("lenderWhy")){
+    delete $("lenderWhy").dataset.userEdited;
+    $("lenderWhy").oninput=()=>{$("lenderWhy").dataset.userEdited="true";};
+  }
   setTimeout(()=>$("lenderName")?.focus(),0);
 }
 window.editLender=id=>openLenderEditor(lenders.find(l=>l.id===id));
@@ -1049,6 +1090,7 @@ if($("saveLenderBtn"))$("saveLenderBtn").onclick=async()=>{
     watch:$("lenderWatch").value.trim(),
     exceptions:$("lenderExceptions").value.trim(),
     notes:$("lenderNotes").value.trim(),
+    tags:selectedLenderTags(),
     active:true
   };
   try{

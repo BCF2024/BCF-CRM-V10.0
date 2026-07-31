@@ -5,14 +5,15 @@ const LENDERS_PROPERTY_PREFIX = 'BCF_LENDERS_';
 const LENDERS_COUNT_KEY = 'BCF_LENDERS_CHUNK_COUNT';
 const PROPERTY_CHUNK_SIZE = 8000;
 
-const DEFAULT_LENDERS = [
-  'Kiavi','Visio Lending','Ternus Lending','Quickline Capital',
-  'RCN Capital','Easy Street Capital','IceCap Group','New Silver','Rock Capital',
-  'Velocity Mortgage Capital','Deephaven Mortgage','Groundfloor','Anchor Loans',
-  'Constructive Capital','EquityMax','First Equity Funding','Capital Funding',
-  'Lendo One','ABL Funding','A&D Mortgages','Tidal Loans','Cogo Capital',
-  'Private Capital','Other'
-];
+const DEFAULT_LENDERS = ['Flipco','Easy Street Capital','New Silver','Ternus Lending','RCN Capital','Kiavi'];
+const STARTER_LENDER_TAGS = {
+  'Flipco':['Fix & Flip','Bridge'],
+  'Easy Street Capital':['Fix & Flip','Bridge'],
+  'New Silver':['Fix & Flip','DSCR','Ground-Up'],
+  'Ternus Lending':['Fix & Flip','Ground-Up'],
+  'RCN Capital':['Fix & Flip','Bridge','DSCR','Ground-Up'],
+  'Kiavi':['Fix & Flip','Bridge','DSCR']
+};
 
 function doGet(){
   return json_({ok:true,message:'BearCrest Cloud Connector Version 4.0 is running.'});
@@ -333,7 +334,7 @@ function createDefaultLenders_(){
     portalUrl:'',
     guidelineUrl:'', profileStatus:'Needs Research', lastVerified:'', programs:'', minFico:'', firstTime:'',
     minLoan:'', maxLoan:'', maxLtv:'', maxLtc:'', maxLtarv:'', foreignNational:'', rural:'', states:'',
-    why:'', watch:'', exceptions:'', notes:'',
+    why:'Starter profile added for BearCrest research.', watch:'', exceptions:'', notes:'', tags:STARTER_LENDER_TAGS[name]||[],
     createdAt:new Date().toISOString(),
     updatedAt:new Date().toISOString()
   }));
@@ -436,7 +437,7 @@ function saveLender_(p){
         portalUrl:'',
         guidelineUrl:'', profileStatus:'Needs Research', lastVerified:'', programs:'', minFico:'', firstTime:'',
         minLoan:'', maxLoan:'', maxLtv:'', maxLtc:'', maxLtarv:'', foreignNational:'', rural:'', states:'',
-        why:'', watch:'', exceptions:'', notes:'',
+        why:'Starter profile added for BearCrest research.', watch:'', exceptions:'', notes:'', tags:STARTER_LENDER_TAGS[name]||[],
         createdAt:now,
         updatedAt:now
       };
@@ -466,6 +467,7 @@ function saveLender_(p){
     lender.watch=String(p.watch||'').trim();
     lender.exceptions=String(p.exceptions||'').trim();
     lender.notes=String(p.notes||'').trim();
+    lender.tags=Array.isArray(p.tags)?p.tags.map(String):[];
     if(typeof p.active==='boolean')lender.active=p.active;
     lender.updatedAt=now;
 

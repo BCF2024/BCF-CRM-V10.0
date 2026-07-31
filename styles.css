@@ -390,3 +390,11 @@ body{overflow-y:auto}
 
 /* Phase One — BearCrest Lender Intelligence */
 .lender-section-title{margin-top:8px;padding:9px 11px;background:#123f2d;color:#fff;border-radius:7px;font-weight:800;letter-spacing:.02em}.lender-profile-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.lender-profile-tags span{font-size:.7rem;background:#edf4ef;border:1px solid #cddbd2;border-radius:999px;padding:3px 7px;color:#214735}.lender-profile-tags .status-tag{background:#fff7dc;border-color:#dfc36a;color:#6c5310}.lender-why,.lender-watch,.lender-verified{margin-top:5px;font-size:.78rem;line-height:1.35}.lender-why{color:#214735}.lender-watch{color:#785d10}.lender-verified{color:var(--muted);font-size:.72rem}.lender-notes{white-space:normal;overflow:visible;max-width:760px}.lender-profile-grid textarea{resize:vertical}
+
+/* BearCrest Lender Intelligence Tags */
+.lender-tag-help{margin:0 0 10px;color:var(--muted);font-size:.82rem}
+.lender-tag-picker{display:flex;flex-wrap:wrap;gap:8px;padding:12px;border:1px solid #d7e1da;border-radius:10px;background:#f7faf8}
+.lender-tag-option{border:1px solid #b9c9bf;background:#fff;color:#214735;border-radius:999px;padding:7px 11px;font-size:.78rem;font-weight:700;cursor:pointer}
+.lender-tag-option.selected{background:#123f2d;color:#fff;border-color:#123f2d;box-shadow:0 2px 7px rgba(18,63,45,.18)}
+.lender-profile-tags .intelligence-tag{background:#e8f3ec;border-color:#a9c8b4;color:#174b32;font-weight:700}
+@media (max-width:700px){.lender-tag-option{padding:8px 10px}.lender-tag-picker{padding:10px}}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#073f2c" />
-  <title>BearCrest Mobile CRM — Version 6.7 Lender Module</title>
+  <title>BearCrest Mobile CRM — Version 6.7 Lender Tags</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -387,8 +387,14 @@
             <label>Rural Properties<select id="lenderRural"><option value="">Unknown</option><option>Yes</option><option>Limited</option><option>No</option><option>Exception</option></select></label>
             <label>States<input id="lenderStates" placeholder="Nationwide, excluded states, or approved states" /></label>
 
+            <div class="wide lender-section-title">BearCrest Tags — Click to Select</div>
+            <div class="wide">
+              <p class="lender-tag-help">Choose every tag that applies. These tags will later power the “Why This Lender” recommendation.</p>
+              <div id="lenderTagPicker" class="lender-tag-picker"></div>
+            </div>
+
             <div class="wide lender-section-title">BearCrest Intelligence — Fully Editable</div>
-            <label class="wide">Why This Lender / Best Use<textarea id="lenderWhy" rows="3" placeholder="Great for first-time investors, strong on heavy rehab, fast bridge closings..."></textarea></label>
+            <label class="wide">Why This Lender / Best Use<textarea id="lenderWhy" rows="3" placeholder="This can be generated from the selected tags, then edited by you."></textarea></label>
             <label class="wide">Things to Watch<textarea id="lenderWatch" rows="3" placeholder="Rural restrictions, conservative ARV, slow draws, higher reserves..."></textarea></label>
             <label class="wide">Exceptions & Workarounds<textarea id="lenderExceptions" rows="3" placeholder="May allow lower FICO with experience, guarantor option, ask AE before submission..."></textarea></label>
             <label class="wide">Internal BearCrest Notes<textarea id="lenderNotes" rows="4" placeholder="Your relationship notes, submission experience, contact preferences, and anything else you want to remember..."></textarea></label>

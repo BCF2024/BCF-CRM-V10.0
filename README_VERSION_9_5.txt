@@ -8,3 +8,6 @@ New:
 - Enriched starter profiles for Flipco, Easy Street Capital, New Silver, Ternus Lending, RCN Capital and Kiavi
 
 Important: Lender guidelines change. Profiles are marked Needs Confirmation until BearCrest verifies the current matrix or receives written confirmation from the lender.
+
+
+Version 9.6.2: Corrected JotForm application-to-Deal-Matcher field mapping, clears stale values, and preserves raw JotForm answers.

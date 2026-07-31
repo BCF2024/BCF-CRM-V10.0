@@ -40,3 +40,6 @@ Save and deploy a New version of the existing Apps Script web app.
 Google may request Calendar permission on the first synced event.
 
 All previous dashboard, Gmail, attachment, Drive, Smart Sync, lender, archive, and branded document features remain included.
+
+
+Version 9.6.2: Corrected JotForm application-to-Deal-Matcher field mapping, clears stale values, and preserves raw JotForm answers.

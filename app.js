@@ -146,7 +146,7 @@ function currentFormData(){
   document.querySelectorAll("#documentChecklist input").forEach(cb=>data.documents[cb.dataset.doc]=cb.checked);
   const existing=loans.find(x=>x.loanId===data.loanId);
   if(existing){
-    ["driveFolderId","driveFolderUrl","jotformSubmissionId","jotformImportedAt","emailActivity"].forEach(key=>{
+    ["driveFolderId","driveFolderUrl","jotformSubmissionId","jotformImportedAt","jotformCreatedAt","jotformApplication","emailActivity"].forEach(key=>{
       if(existing[key]!==undefined)data[key]=existing[key];
     });
   }
@@ -2260,39 +2260,91 @@ $("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePri
 
 
 
+function normalizedQuestionText(value){
+  return String(value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+}
 function loanApplicationAnswer(loan,needles){
   const rows=Array.isArray(loan?.jotformApplication)?loan.jotformApplication:[];
-  for(const row of rows){const q=String(row.question||"").toLowerCase();if(needles.some(n=>q.includes(n)))return String(row.answer||"");}
+  const wanted=needles.map(normalizedQuestionText);
+  for(const row of rows){
+    const q=normalizedQuestionText(row.question||row.name||row.key||"");
+    if(wanted.some(n=>q.includes(n)||n.includes(q)))return String(row.answer||row.value||"");
+  }
   return "";
 }
 function numericApplicationValue(loan,directKey,needles){
-  const direct=loan?.[directKey]; if(String(direct||"").trim())return String(direct).replace(/[^0-9.]/g,"");
+  const direct=loan?.[directKey];
+  if(String(direct||"").trim())return String(direct).replace(/[^0-9.]/g,"");
   return loanApplicationAnswer(loan,needles).replace(/[^0-9.]/g,"");
 }
 function inferStateFromAddress(address){
-  const text=String(address||"").toUpperCase();
-  const map={GA:[" GEORGIA"," GA ",",GA"],TN:[" TENNESSEE"," TN ",",TN"],FL:[" FLORIDA"," FL ",",FL"],TX:[" TEXAS"," TX ",",TX"],NC:[" NORTH CAROLINA"," NC ",",NC"],SC:[" SOUTH CAROLINA"," SC ",",SC"],AL:[" ALABAMA"," AL ",",AL"]};
+  const text=` ${String(address||"").toUpperCase().replace(/[^A-Z0-9]+/g," ")} `;
+  const map={
+    GA:[" GEORGIA "," GA "],TN:[" TENNESSEE "," TN "],FL:[" FLORIDA "," FLA "," FL "," DAYTONA BEACH "],
+    TX:[" TEXAS "," TX "],NC:[" NORTH CAROLINA "," NC "],SC:[" SOUTH CAROLINA "," SC "],
+    AL:[" ALABAMA "," AL "],NY:[" NEW YORK "," NY "],PA:[" PENNSYLVANIA "," PA "],
+    IN:[" INDIANA "," IN "],OH:[" OHIO "," OH "],VA:[" VIRGINIA "," VA "],MD:[" MARYLAND "," MD "],
+    NJ:[" NEW JERSEY "," NJ "],MA:[" MASSACHUSETTS "," MA "],CT:[" CONNECTICUT "," CT "]
+  };
   for(const [code,tokens] of Object.entries(map))if(tokens.some(t=>text.includes(t)))return code;
-  return "GA";
+  const zip=String(address||"").match(/\b(\d{5})(?:-\d{4})?\b/)?.[1];
+  if(zip){
+    const z=Number(zip);
+    if(z>=32000&&z<=34999)return "FL";
+    if(z>=30000&&z<=31999)return "GA";
+    if(z>=37000&&z<=38599)return "TN";
+  }
+  return "";
+}
+function matcherProgramFromLoan(loan){
+  const raw=String(loan?.program||loanApplicationAnswer(loan,["loan program","loan type","financing type","purpose of loan"])||"").toLowerCase();
+  if(raw.includes("fix")||raw.includes("flip")||raw.includes("rehab"))return "Fix & Flip";
+  if(raw.includes("dscr")||raw.includes("rental"))return "DSCR";
+  if(raw.includes("ground")||raw.includes("construction"))return "Ground-Up Construction";
+  if(raw.includes("bridge")||raw.includes("cash out"))return "Bridge";
+  return "Fix & Flip";
 }
 async function matchCurrentLoan(){
-  const loan=currentFormData();
-  const address=loan.propertyAddress||loanApplicationAnswer(loan,["property address","full property"]);
+  const id=$("loanId")?.value;
+  const saved=loans.find(x=>x.loanId===id)||{};
+  const loan={...saved,...currentFormData()};
+  if(Array.isArray(saved.jotformApplication))loan.jotformApplication=saved.jotformApplication;
+  const address=loan.propertyAddress||loanApplicationAnswer(loan,["property address","full property","subject property","property location"]);
   const values={
-    matchProgram:loan.program||"Fix & Flip",matchState:inferStateFromAddress(address),matchAddress:address,
-    matchFico:numericApplicationValue(loan,"fico",["credit score","fico"]),
-    matchExperience:numericApplicationValue(loan,"experience",["completed projects","completed flips","flip experience","rehab experience","experience"]),
-    matchPurchase:numericApplicationValue(loan,"purchasePrice",["purchase price"]),
-    matchRehab:numericApplicationValue(loan,"rehabBudget",["rehab budget","scope of work"]),
-    matchArv:numericApplicationValue(loan,"arv",["estimated arv","after repair value"]),
-    matchLoan:numericApplicationValue(loan,"loanAmount",["requested loan amount"]),
-    matchLiquidity:numericApplicationValue(loan,"liquidity",["liquidity","cash available","reserves"]),
-    matchPropertyType:loan.propertyType||loanApplicationAnswer(loan,["property type"])||"Single Family",
-    matchRural:loan.rural||loanApplicationAnswer(loan,["rural"])||"No"
+    matchProgram:matcherProgramFromLoan(loan),
+    matchState:inferStateFromAddress(address),
+    matchAddress:address,
+    matchFico:numericApplicationValue(loan,"fico",["credit score","fico score","estimated fico","middle credit"]),
+    matchExperience:numericApplicationValue(loan,"experience",["completed projects","completed flips","number of flips","flip experience","rehab experience","projects completed","experience"]),
+    matchPurchase:numericApplicationValue(loan,"purchasePrice",["purchase price","acquisition price","acquisition cost","contract price","property purchase"]),
+    matchRehab:numericApplicationValue(loan,"rehabBudget",["rehab budget","renovation budget","repair budget","construction budget","scope of work","rehab amount"]),
+    matchArv:numericApplicationValue(loan,"arv",["estimated arv","after repair value","after repaired value","projected value","completed value","arv"]),
+    matchLoan:numericApplicationValue(loan,"loanAmount",["requested loan amount","loan request","amount requested","desired loan"]),
+    matchLiquidity:numericApplicationValue(loan,"liquidity",["liquidity","cash available","available cash","reserves","liquid assets"]),
+    matchPropertyType:loan.propertyType||loanApplicationAnswer(loan,["property type","asset type"])||"Single Family",
+    matchRural:loan.rural||loanApplicationAnswer(loan,["rural","rural property"])||"No"
   };
-  Object.entries(values).forEach(([id,v])=>{if($(id))$(id).value=v||""});
-  $("loanDialog").close(); v5ShowView("deal-matcher");
-  await loadLenders(false); runDealMatcher();
+  ["matchAddress","matchFico","matchExperience","matchPurchase","matchRehab","matchArv","matchLoan","matchLiquidity"].forEach(id=>{if($(id))$(id).value=""});
+  if($("matchProgram"))$("matchProgram").value="Fix & Flip";
+  if($("matchState"))$("matchState").value="";
+  if($("matchPropertyType"))$("matchPropertyType").value="Single Family";
+  if($("matchRural"))$("matchRural").value="No";
+  Object.entries(values).forEach(([fieldId,v])=>{if($(fieldId)&&v!==undefined&&v!==null)$(fieldId).value=v});
+  $("dealMatcherSummary")?.classList.add("hidden");
+  $("dealMatcherResults")?.classList.add("hidden");
+  $("dealMatcherStatus").textContent="Application loaded. Review any blank fields, then run the match.";
+  $("loanDialog").close();
+  v5ShowView("deal-matcher");
+  await loadLenders(false);
+  const missing=[];
+  if(!values.matchPurchase)missing.push("purchase price");
+  if(!values.matchArv)missing.push("ARV");
+  if(!values.matchFico)missing.push("credit score");
+  if(missing.length){
+    $("dealMatcherStatus").textContent=`Application loaded. Please enter ${missing.join(", ")} before matching.`;
+  }else{
+    runDealMatcher();
+  }
 }
 $("matchLoanBtn")?.addEventListener("click",matchCurrentLoan);
 

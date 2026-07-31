@@ -2291,7 +2291,7 @@ async function matchCurrentLoan(){
     matchRural:loan.rural||loanApplicationAnswer(loan,["rural"])||"No"
   };
   Object.entries(values).forEach(([id,v])=>{if($(id))$(id).value=v||""});
-  $("loanDialog").close(); showView("deal-matcher");
+  $("loanDialog").close(); v5ShowView("deal-matcher");
   await loadLenders(false); runDealMatcher();
 }
 $("matchLoanBtn")?.addEventListener("click",matchCurrentLoan);
@@ -2340,7 +2340,7 @@ function runDealMatcher(){
   $("dealMatcherSummary").classList.remove("hidden");
   $("dealMatcherSummary").innerHTML=`<div class="deal-summary-grid"><div class="deal-metric"><small>Total Cost</small><strong>${money(deal.totalCost)}</strong></div><div class="deal-metric"><small>Requested LTC</small><strong>${deal.ltc.toFixed(1)}%</strong></div><div class="deal-metric"><small>Requested LTARV</small><strong>${deal.ltarv.toFixed(1)}%</strong></div><div class="deal-metric"><small>Matches</small><strong>${counts("Best Match")} best · ${counts("Possible Match")} possible</strong></div></div><div class="deal-note"><strong>Screening only:</strong> Results use the guidelines saved in this CRM. Confirm the current matrix and exception policy before quoting or submitting.</div>`;
   $("dealMatcherResults").classList.remove("hidden");
-  $("dealMatcherResults").innerHTML=matches.map(m=>`<article class="matcher-result ${m.status.toLowerCase().replaceAll(" ","-")}"><div class="matcher-result-head"><div><span class="match-status">${esc(m.status)}</span><h3>${esc(m.lender.name)}</h3></div><strong class="match-score">${m.score}</strong></div><div class="matcher-result-grid"><div><h4>Why it may work</h4><ul>${m.reasons.map(x=>`<li>${esc(x)}</li>`).join("")||"<li>No positive rules saved.</li>"}</ul></div><div><h4>Things to check</h4><ul>${m.warnings.map(x=>`<li>${esc(x)}</li>`).join("")||"<li>No material warnings from saved rules.</li>"}</ul></div></div><p class="matcher-rule-note">${esc(m.rule.note||"")}</p><div class="matcher-actions"><button type="button" onclick="editLender('${m.lender.id}');showView('lenders')">Open Lender Profile</button></div></article>`).join("");
+  $("dealMatcherResults").innerHTML=matches.map(m=>`<article class="matcher-result ${m.status.toLowerCase().replaceAll(" ","-")}"><div class="matcher-result-head"><div><span class="match-status">${esc(m.status)}</span><h3>${esc(m.lender.name)}</h3></div><strong class="match-score">${m.score}</strong></div><div class="matcher-result-grid"><div><h4>Why it may work</h4><ul>${m.reasons.map(x=>`<li>${esc(x)}</li>`).join("")||"<li>No positive rules saved.</li>"}</ul></div><div><h4>Things to check</h4><ul>${m.warnings.map(x=>`<li>${esc(x)}</li>`).join("")||"<li>No material warnings from saved rules.</li>"}</ul></div></div><p class="matcher-rule-note">${esc(m.rule.note||"")}</p><div class="matcher-actions"><button type="button" onclick="v5ShowView('lenders');editLender('${m.lender.id}')">Open Lender Profile</button></div></article>`).join("");
   $("dealMatcherStatus").textContent=`Compared against ${matches.length} active lender profile(s).`;
 }
 $("runDealMatchBtn")?.addEventListener("click",runDealMatcher);

@@ -472,6 +472,11 @@
         <label>Purchase Price<input id="purchasePrice" type="number" step="100" /></label>
         <label>Rehab Budget<input id="rehabBudget" type="number" step="100" /></label>
         <label>Estimated ARV<input id="arv" type="number" step="100" /></label>
+        <label>Credit Score<input id="fico" type="number" min="300" max="850" /></label>
+        <label>Completed Projects<input id="experience" type="number" min="0" /></label>
+        <label>Available Liquidity<input id="liquidity" type="number" step="100" /></label>
+        <label>Property Type<select id="propertyType"><option>Single Family</option><option>2–4 Unit</option><option>Condo</option><option>Townhome</option><option>Multifamily</option><option>Mixed Use</option><option>Other</option></select></label>
+        <label>Rural Property?<select id="rural"><option>No</option><option>Yes</option><option>Unknown</option></select></label>
         <label>Status<select id="status"><option>New Lead</option><option>Reviewing</option><option>Submitted</option><option>Approved</option><option>Closing</option><option>Closed</option><option>Dead</option><option>Archived</option></select></label>
         <label>Assigned Lender<select id="lender"><option value="">Select lender...</option></select></label>
         <label>Final Funding Partner<select id="finalLender"><option value="">Not yet funded...</option></select></label>
@@ -510,6 +515,7 @@
         <button type="button" id="preapprovalBtn">Approval Letter</button>
         <button type="button" id="declineBtn">Decline Letter</button>
         <button type="button" id="viewApplicationBtn">Preview Application</button>
+        <button type="button" id="matchLoanBtn" class="match-loan-action">★ Match Lenders</button>
         <button type="button" id="saveApplicationPdfBtn">Generate / Save PDF</button>
         <span class="action-divider"></span>
         <button type="button" id="composeEmailBtn" class="email-action">Email Borrower</button>

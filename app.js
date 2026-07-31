@@ -3,7 +3,7 @@ const OLD_STORAGE_KEY = "bearcrest_loans_v4_1_none";
 const $ = id => document.getElementById(id);
 const STATUSES = ["New Lead","Reviewing","Submitted","Approved","Closing","Closed","Dead","Archived"];
 const DOCS = ["Government-issued ID","Bank/asset statements","Entity documents","Purchase contract","Insurance information","Property photos","Scope of work / budget","Experience worksheet","Lease / rent information","Payoff statement"];
-const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","propertyAddress","loanAmount","purchasePrice","rehabBudget","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes"];
+const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","propertyAddress","loanAmount","purchasePrice","rehabBudget","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural"];
 let showBoard = false;
 let todayOnly = false;
 let archiveOnly = false;
@@ -432,6 +432,11 @@ $("syncApplicationsBtn").onclick=async()=>{
           purchasePrice:answerValue(answers,["purchase price"]).replace(/[^0-9.]/g,""),
           rehabBudget:answerValue(answers,["rehab budget","scope of work"]).replace(/[^0-9.]/g,""),
           arv:answerValue(answers,["estimated arv"]).replace(/[^0-9.]/g,""),
+          fico:answerValue(answers,["credit score","fico"]).replace(/[^0-9.]/g,""),
+          experience:answerValue(answers,["completed projects","completed flips","flip experience","rehab experience","experience"]).replace(/[^0-9.]/g,""),
+          liquidity:answerValue(answers,["liquidity","cash available","reserves"]).replace(/[^0-9.]/g,""),
+          propertyType:answerValue(answers,["property type"])||"Single Family",
+          rural:answerValue(answers,["rural"])||"No",
           targetClosing:answerValue(answers,["target closing"]),
           exitStrategy:answerValue(answers,["exit strategy"]),
           status:"New Lead",
@@ -2253,6 +2258,43 @@ async function analyzeDeal(){
 $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
 $("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
 
+
+
+function loanApplicationAnswer(loan,needles){
+  const rows=Array.isArray(loan?.jotformApplication)?loan.jotformApplication:[];
+  for(const row of rows){const q=String(row.question||"").toLowerCase();if(needles.some(n=>q.includes(n)))return String(row.answer||"");}
+  return "";
+}
+function numericApplicationValue(loan,directKey,needles){
+  const direct=loan?.[directKey]; if(String(direct||"").trim())return String(direct).replace(/[^0-9.]/g,"");
+  return loanApplicationAnswer(loan,needles).replace(/[^0-9.]/g,"");
+}
+function inferStateFromAddress(address){
+  const text=String(address||"").toUpperCase();
+  const map={GA:[" GEORGIA"," GA ",",GA"],TN:[" TENNESSEE"," TN ",",TN"],FL:[" FLORIDA"," FL ",",FL"],TX:[" TEXAS"," TX ",",TX"],NC:[" NORTH CAROLINA"," NC ",",NC"],SC:[" SOUTH CAROLINA"," SC ",",SC"],AL:[" ALABAMA"," AL ",",AL"]};
+  for(const [code,tokens] of Object.entries(map))if(tokens.some(t=>text.includes(t)))return code;
+  return "GA";
+}
+async function matchCurrentLoan(){
+  const loan=currentFormData();
+  const address=loan.propertyAddress||loanApplicationAnswer(loan,["property address","full property"]);
+  const values={
+    matchProgram:loan.program||"Fix & Flip",matchState:inferStateFromAddress(address),matchAddress:address,
+    matchFico:numericApplicationValue(loan,"fico",["credit score","fico"]),
+    matchExperience:numericApplicationValue(loan,"experience",["completed projects","completed flips","flip experience","rehab experience","experience"]),
+    matchPurchase:numericApplicationValue(loan,"purchasePrice",["purchase price"]),
+    matchRehab:numericApplicationValue(loan,"rehabBudget",["rehab budget","scope of work"]),
+    matchArv:numericApplicationValue(loan,"arv",["estimated arv","after repair value"]),
+    matchLoan:numericApplicationValue(loan,"loanAmount",["requested loan amount"]),
+    matchLiquidity:numericApplicationValue(loan,"liquidity",["liquidity","cash available","reserves"]),
+    matchPropertyType:loan.propertyType||loanApplicationAnswer(loan,["property type"])||"Single Family",
+    matchRural:loan.rural||loanApplicationAnswer(loan,["rural"])||"No"
+  };
+  Object.entries(values).forEach(([id,v])=>{if($(id))$(id).value=v||""});
+  $("loanDialog").close(); showView("deal-matcher");
+  await loadLenders(false); runDealMatcher();
+}
+$("matchLoanBtn")?.addEventListener("click",matchCurrentLoan);
 
 // ===== BearCrest Version 9.5: Deal Matcher =====
 function matcherNumber(id){return Number($(id)?.value||0)}

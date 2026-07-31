@@ -810,13 +810,21 @@ const LENDER_TAGS=[
   "Fast Closing","Great Communication","Flexible Underwriting","Preferred Lender","Competitive Pricing","Easy Draw Process",
   "No Rural","No Owner Occupied","Conservative ARV","Higher Reserves"
 ];
+const DEAL_MATCHER_RULES={
+  "Flipco":{minFico:620,minLoan:75000,maxLtc:90,maxLtarv:70,minExperience:0,programs:["Fix & Flip","Bridge"],states:"Nationwide",heavyRehab:true,note:"Flexible asset-focused option; confirm final leverage and market eligibility with the AE."},
+  "Easy Street Capital":{minFico:600,minLoan:75000,maxLtc:90,maxLtarv:75,minExperience:0,programs:["Fix & Flip","Bridge"],states:"Nationwide",heavyRehab:true,note:"Strong first look for lower-FICO experienced investors; terms remain subject to lender confirmation."},
+  "New Silver":{minFico:650,minLoan:100000,maxLtc:90,maxLtarv:75,minExperience:0,programs:["Fix & Flip","Bridge","DSCR","Ground-Up"],states:"Nationwide",heavyRehab:true,note:"Technology-driven lender; verify current FICO tier, loan minimum and state eligibility."},
+  "Ternus Lending":{minFico:0,minLoan:75000,maxLtc:100,maxLtarv:70,minExperience:0,programs:["Fix & Flip","Ground-Up"],states:"Nationwide",heavyRehab:true,note:"Property-first program may allow completely financed purchase and rehab when county and reserve rules are met."},
+  "RCN Capital":{minFico:650,minLoan:75000,maxLtc:90,maxLtarv:75,minExperience:0,programs:["Fix & Flip","Bridge","DSCR","Ground-Up"],states:"Nationwide",heavyRehab:true,note:"Broad program set; a 640 FICO should be treated as exception-only unless the current matrix says otherwise."},
+  "Kiavi":{minFico:680,minLoan:100000,maxLtc:90,maxLtarv:75,minExperience:0,programs:["Fix & Flip","Bridge","DSCR"],states:"Nationwide",heavyRehab:true,note:"Fast platform, but the current broker credit threshold should be confirmed before submission."}
+};
 const STARTER_LENDER_PROFILES={
-  "Flipco":{programs:"Fix & Flip, Bridge",profileStatus:"Needs Research",tags:["Fix & Flip","Bridge"],why:"Starter profile added for BearCrest research."},
-  "Easy Street Capital":{programs:"Fix & Flip, Bridge",profileStatus:"Needs Research",tags:["Fix & Flip","Bridge"],why:"Starter profile added for BearCrest research."},
-  "New Silver":{programs:"Fix & Flip, DSCR, Ground-Up",profileStatus:"Needs Research",tags:["Fix & Flip","DSCR","Ground-Up"],why:"Starter profile added for BearCrest research."},
-  "Ternus Lending":{programs:"Fix & Flip, Ground-Up",profileStatus:"Needs Research",tags:["Fix & Flip","Ground-Up"],why:"Starter profile added for BearCrest research."},
-  "RCN Capital":{programs:"Fix & Flip, Bridge, DSCR, Ground-Up",profileStatus:"Needs Research",tags:["Fix & Flip","Bridge","DSCR","Ground-Up"],why:"Starter profile added for BearCrest research."},
-  "Kiavi":{programs:"Fix & Flip, Bridge, DSCR",profileStatus:"Needs Research",tags:["Fix & Flip","Bridge","DSCR"],why:"Starter profile added for BearCrest research."}
+  "Flipco":{programs:"Fix & Flip, Bridge",profileStatus:"Needs Confirmation",minFico:"620",minLoan:"$75,000",maxLtc:"90%",maxLtarv:"70%",firstTime:"Yes, with conditions",tags:["Fix & Flip","Bridge","Flexible Credit","Heavy Rehab"],why:"Flexible asset-focused option for fix-and-flip and bridge scenarios.",watch:"Confirm market, leverage and current credit tier before quoting."},
+  "Easy Street Capital":{programs:"Fix & Flip, Bridge",profileStatus:"Needs Confirmation",minFico:"600",minLoan:"$75,000",maxLtc:"90%",maxLtarv:"75%",firstTime:"Yes, with conditions",tags:["Fix & Flip","Bridge","Flexible Credit","Heavy Rehab","Fast Closing"],why:"Strong first look for lower-FICO investors when the deal and liquidity are solid.",watch:"Verify current minimum loan and contribution requirements."},
+  "New Silver":{programs:"Fix & Flip, Bridge, DSCR, Ground-Up",profileStatus:"Needs Confirmation",minFico:"650",minLoan:"$100,000",maxLtc:"90%",maxLtarv:"75%",firstTime:"Yes, with conditions",tags:["Fix & Flip","Bridge","DSCR","Ground-Up","Fast Closing"],why:"Useful technology-driven option across several investor programs.",watch:"Confirm current credit tier, state list and loan minimum."},
+  "Ternus Lending":{programs:"Fix & Flip, Ground-Up",profileStatus:"Needs Confirmation",minFico:"Property-first",minLoan:"$75,000",maxLtc:"Up to 100%",maxLtarv:"70%",firstTime:"Yes",tags:["Fix & Flip","Ground-Up","First-Time Friendly","Flexible Credit","Heavy Rehab"],why:"Property-first option that may completely finance purchase and rehab when program rules are met.",watch:"County population, county median value and reserve requirements are critical."},
+  "RCN Capital":{programs:"Fix & Flip, Bridge, DSCR, Ground-Up",profileStatus:"Needs Confirmation",minFico:"650",minLoan:"$75,000",maxLtc:"90%",maxLtarv:"75%",firstTime:"Yes, with conditions",tags:["Fix & Flip","Bridge","DSCR","Ground-Up","Heavy Rehab"],why:"Broad program set and a useful benchmark lender for experienced investors.",watch:"A 640 FICO should be treated as exception-only until confirmed."},
+  "Kiavi":{programs:"Fix & Flip, Bridge, DSCR",profileStatus:"Needs Confirmation",minFico:"680",minLoan:"$100,000",maxLtc:"90%",maxLtarv:"75%",firstTime:"Yes, with conditions",tags:["Fix & Flip","Bridge","DSCR","Fast Closing"],why:"Fast, streamlined platform for qualifying investor deals.",watch:"Confirm broker-channel minimum FICO and current market eligibility."}
 };
 let lenders=[];
 
@@ -1168,6 +1176,14 @@ function v5ShowView(name){
     $("dealAnalyzerView")?.classList.add("active-view");
     document.querySelector('[data-view="deal-analyzer"]')?.classList.add("active");
     $("viewSubtitle").textContent="Automated property valuation and deal screening";
+    return;
+  }
+
+  if(name==="deal-matcher"){
+    $("dealMatcherView")?.classList.add("active-view");
+    document.querySelector('[data-view="deal-matcher"]')?.classList.add("active");
+    $("viewSubtitle").textContent="Match a deal against BearCrest lender guidelines";
+    loadLenders(false).then(()=>{ if(!$("dealMatcherResults").innerHTML) runDealMatcher(); });
     return;
   }
 
@@ -2236,3 +2252,55 @@ async function analyzeDeal(){
 }
 $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
 $("clearDealBtn")?.addEventListener("click",()=>{["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+
+
+// ===== BearCrest Version 9.5: Deal Matcher =====
+function matcherNumber(id){return Number($(id)?.value||0)}
+function parseGuidelineNumber(value,fallback=0){const m=String(value||"").replace(/,/g,"").match(/[\d.]+/);return m?Number(m[0]):fallback}
+function lenderRuleFor(lender){
+  const base=DEAL_MATCHER_RULES[lender.name]||{};
+  return {...base,
+    minFico:parseGuidelineNumber(lender.minFico,base.minFico||0),
+    minLoan:parseGuidelineNumber(lender.minLoan,base.minLoan||0),
+    maxLtc:parseGuidelineNumber(lender.maxLtc,base.maxLtc||0),
+    maxLtarv:parseGuidelineNumber(lender.maxLtarv,base.maxLtarv||0),
+    programs:String(lender.programs||"").split(",").map(v=>v.trim()).filter(Boolean).length?String(lender.programs).split(",").map(v=>v.trim()):(base.programs||[]),
+    note:lender.watch||base.note||"Confirm current guidelines before submission."
+  };
+}
+function getMatcherDeal(){
+  const purchase=matcherNumber("matchPurchase"),rehab=matcherNumber("matchRehab"),arv=matcherNumber("matchArv");
+  let loan=matcherNumber("matchLoan"); if(!loan)loan=purchase+rehab;
+  return {program:$("matchProgram").value,state:$("matchState").value,address:$("matchAddress").value.trim(),fico:matcherNumber("matchFico"),experience:matcherNumber("matchExperience"),purchase,rehab,arv,loan,liquidity:matcherNumber("matchLiquidity"),propertyType:$("matchPropertyType").value,rural:$("matchRural").value,totalCost:purchase+rehab,ltc:purchase+rehab?loan/(purchase+rehab)*100:0,ltarv:arv?loan/arv*100:0,rehabRatio:purchase?rehab/purchase:0};
+}
+function scoreLenderMatch(lender,deal){
+  const rule=lenderRuleFor(lender),reasons=[],warnings=[];let hard=0,score=100;
+  const programs=(rule.programs||[]).map(v=>v.toLowerCase());
+  if(!programs.some(v=>v.includes(deal.program.toLowerCase()))){hard++;score-=50;reasons.push(`Does not list ${deal.program}.`)} else reasons.push(`${deal.program} is offered.`);
+  if(rule.minFico&&deal.fico<rule.minFico){const gap=rule.minFico-deal.fico;score-=gap<=20?22:40;warnings.push(`FICO is ${gap} points below the ${rule.minFico} guideline.`);if(gap>20)hard++;} else if(rule.minFico) reasons.push(`FICO meets the ${rule.minFico} guideline.`); else reasons.push("Property-first or no numeric FICO rule saved.");
+  if(rule.minLoan&&deal.loan<rule.minLoan){score-=18;warnings.push(`Requested loan is ${money(deal.loan)}; saved minimum is ${money(rule.minLoan)}.`)}
+  if(rule.maxLtc&&deal.ltc>rule.maxLtc+0.05){score-=22;warnings.push(`${deal.ltc.toFixed(1)}% LTC exceeds saved ${rule.maxLtc}% LTC.`)} else if(rule.maxLtc) reasons.push(`${deal.ltc.toFixed(1)}% LTC is within ${rule.maxLtc}%.`);
+  if(rule.maxLtarv&&deal.ltarv>rule.maxLtarv+0.05){score-=35;hard++;warnings.push(`${deal.ltarv.toFixed(1)}% LTARV exceeds saved ${rule.maxLtarv}%.`)} else if(rule.maxLtarv) reasons.push(`${deal.ltarv.toFixed(1)}% LTARV is within ${rule.maxLtarv}%.`);
+  if(deal.rehabRatio>=1&&!((lender.tags||[]).includes("Heavy Rehab")||rule.heavyRehab)){score-=12;warnings.push("Rehab exceeds purchase price; heavy-rehab approval needs confirmation.")} else if(deal.rehabRatio>=1) reasons.push("Heavy-rehab profile is supported.");
+  if(deal.rural==="Yes"&&String(lender.rural||"").toLowerCase().includes("no")){score-=40;hard++;warnings.push("Saved profile does not allow rural properties.")}
+  if(lender.profileStatus!=="Verified")warnings.push(`Profile status: ${lender.profileStatus||"Needs Confirmation"}.`);
+  let status=hard?"Does Not Qualify":score>=78?"Best Match":score>=52?"Possible Match":"Does Not Qualify";
+  if(status==="Best Match"&&lender.profileStatus!=="Verified")status="Possible Match";
+  return {lender,rule,score:Math.max(0,Math.round(score)),status,reasons,warnings};
+}
+function runDealMatcher(){
+  const deal=getMatcherDeal();
+  if(!deal.purchase||!deal.arv||!deal.fico){$("dealMatcherStatus").textContent="Enter purchase price, ARV and credit score.";return}
+  const active=(lenders||[]).filter(l=>l.active!==false);
+  const rank={"Best Match":0,"Possible Match":1,"Does Not Qualify":2};
+  const matches=active.map(l=>scoreLenderMatch(l,deal)).sort((a,b)=>(rank[a.status]-rank[b.status])||(b.score-a.score));
+  const counts=s=>matches.filter(m=>m.status===s).length;
+  $("dealMatcherSummary").classList.remove("hidden");
+  $("dealMatcherSummary").innerHTML=`<div class="deal-summary-grid"><div class="deal-metric"><small>Total Cost</small><strong>${money(deal.totalCost)}</strong></div><div class="deal-metric"><small>Requested LTC</small><strong>${deal.ltc.toFixed(1)}%</strong></div><div class="deal-metric"><small>Requested LTARV</small><strong>${deal.ltarv.toFixed(1)}%</strong></div><div class="deal-metric"><small>Matches</small><strong>${counts("Best Match")} best · ${counts("Possible Match")} possible</strong></div></div><div class="deal-note"><strong>Screening only:</strong> Results use the guidelines saved in this CRM. Confirm the current matrix and exception policy before quoting or submitting.</div>`;
+  $("dealMatcherResults").classList.remove("hidden");
+  $("dealMatcherResults").innerHTML=matches.map(m=>`<article class="matcher-result ${m.status.toLowerCase().replaceAll(" ","-")}"><div class="matcher-result-head"><div><span class="match-status">${esc(m.status)}</span><h3>${esc(m.lender.name)}</h3></div><strong class="match-score">${m.score}</strong></div><div class="matcher-result-grid"><div><h4>Why it may work</h4><ul>${m.reasons.map(x=>`<li>${esc(x)}</li>`).join("")||"<li>No positive rules saved.</li>"}</ul></div><div><h4>Things to check</h4><ul>${m.warnings.map(x=>`<li>${esc(x)}</li>`).join("")||"<li>No material warnings from saved rules.</li>"}</ul></div></div><p class="matcher-rule-note">${esc(m.rule.note||"")}</p><div class="matcher-actions"><button type="button" onclick="editLender('${m.lender.id}');showView('lenders')">Open Lender Profile</button></div></article>`).join("");
+  $("dealMatcherStatus").textContent=`Compared against ${matches.length} active lender profile(s).`;
+}
+$("runDealMatchBtn")?.addEventListener("click",runDealMatcher);
+$("loadAugustaDealBtn")?.addEventListener("click",()=>{const vals={matchProgram:"Fix & Flip",matchState:"GA",matchAddress:"Augusta, Georgia",matchFico:640,matchExperience:2,matchPurchase:56000,matchRehab:100000,matchArv:250000,matchLoan:156000,matchLiquidity:"",matchPropertyType:"Single Family",matchRural:"No"};Object.entries(vals).forEach(([id,v])=>$(id).value=v);runDealMatcher();});
+$("clearDealMatchBtn")?.addEventListener("click",()=>{["matchAddress","matchFico","matchExperience","matchPurchase","matchRehab","matchArv","matchLoan","matchLiquidity"].forEach(id=>$(id).value="");$("dealMatcherSummary").classList.add("hidden");$("dealMatcherResults").classList.add("hidden");$("dealMatcherStatus").textContent="";});

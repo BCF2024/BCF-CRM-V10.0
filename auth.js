@@ -1,103 +1,27 @@
-const AUTH_KEY="bearcrest_auth_v4_1_clean";
-const SESSION_KEY="bearcrest_session_v4_1_clean";
+const USERS_KEY="bearcrest_users_v11";
+const SESSION_KEY="bearcrest_session_v11";
+const LEGACY_AUTH_KEY="bearcrest_auth_v4_1_clean";
 
-function authDefaults(){
-  return {username:"admin",password:"BearCrest2026!",mustChange:true,timeoutMinutes:60};
+function userDefaults(){
+  let legacy={};try{legacy=JSON.parse(localStorage.getItem(LEGACY_AUTH_KEY)||"{}");}catch{}
+  return [{id:"admin",fullName:"Joel Vazquez",username:legacy.username||"admin",password:legacy.password||"BearCrest2026!",role:"Administrator",active:true,mustChange:legacy.mustChange!==false,createdAt:new Date().toISOString()}];
 }
-function getAuth(){
-  try{return {...authDefaults(),...JSON.parse(localStorage.getItem(AUTH_KEY)||"{}")};}
-  catch{return authDefaults();}
-}
-function saveAuth(value){localStorage.setItem(AUTH_KEY,JSON.stringify({...getAuth(),...value}));}
-function sessionValid(){
-  try{const s=JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");return !!s&&Date.now()<s.expiresAt;}
-  catch{return false;}
-}
-function startSession(){
-  const a=getAuth();
-  sessionStorage.setItem(SESSION_KEY,JSON.stringify({expiresAt:Date.now()+Number(a.timeoutMinutes||60)*60000}));
-}
-function unlock(){
-  document.body.classList.remove("auth-locked");
-  document.getElementById("loginScreen")?.classList.add("hidden");
-}
-function lock(){
-  document.body.classList.add("auth-locked");
-  document.getElementById("loginScreen")?.classList.remove("hidden");
-}
+function getUsers(){try{const u=JSON.parse(localStorage.getItem(USERS_KEY)||"null");return Array.isArray(u)&&u.length?u:userDefaults();}catch{return userDefaults();}}
+function saveUsers(users){localStorage.setItem(USERS_KEY,JSON.stringify(users));}
+if(!localStorage.getItem(USERS_KEY))saveUsers(userDefaults());
+function getCurrentUser(){try{const s=JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");if(!s||Date.now()>s.expiresAt)return null;return getUsers().find(u=>u.id===s.userId&&u.active)||null;}catch{return null;}}
+function sessionValid(){return !!getCurrentUser();}
+function startSession(user){sessionStorage.setItem(SESSION_KEY,JSON.stringify({userId:user.id,expiresAt:Date.now()+60*60000}));}
+function unlock(){document.body.classList.remove("auth-locked");document.getElementById("loginScreen")?.classList.add("hidden");document.dispatchEvent(new CustomEvent("bearcrest:user-login",{detail:getCurrentUser()}));}
+function lock(){document.body.classList.add("auth-locked");document.getElementById("loginScreen")?.classList.remove("hidden");}
 function validPassword(v){return String(v||"").length>=10;}
+window.BearCrestAuth={getUsers,saveUsers,getCurrentUser,isAdmin:()=>getCurrentUser()?.role==="Administrator"};
 
 document.addEventListener("DOMContentLoaded",()=>{
-  const loginForm=document.getElementById("loginForm");
-  const loginError=document.getElementById("loginError");
-  const username=document.getElementById("loginUsername");
-  const password=document.getElementById("loginPassword");
-  const toggle=document.getElementById("togglePasswordBtn");
-  const logout=document.getElementById("logoutBtn");
-  const changeForm=document.getElementById("passwordChangeForm");
-
-  if(sessionValid())unlock();
-  else{lock();if(username)username.value=getAuth().username;}
-
-  if(toggle)toggle.onclick=()=>{
-    const visible=password.type==="text";
-    password.type=visible?"password":"text";
-    toggle.textContent=visible?"Show":"Hide";
-  };
-
-  if(loginForm)loginForm.addEventListener("submit",e=>{
-    e.preventDefault();
-    const a=getAuth();
-    if(username.value.trim()!==a.username||password.value!==a.password){
-      loginError.textContent="The username or password is incorrect.";
-      return;
-    }
-    loginError.textContent="";
-    startSession();
-    unlock();
-    password.value="";
-    if(a.mustChange){
-      const d=document.getElementById("passwordChangeDialog");
-      if(d&&!d.open)d.showModal();
-    }
-  });
-
-  if(changeForm)changeForm.addEventListener("submit",e=>{
-    e.preventDefault();
-    const p1=document.getElementById("firstNewPassword").value;
-    const p2=document.getElementById("firstConfirmPassword").value;
-    const error=document.getElementById("passwordChangeError");
-    if(!validPassword(p1)){error.textContent="Use at least 10 characters.";return;}
-    if(p1!==p2){error.textContent="The passwords do not match.";return;}
-    saveAuth({password:p1,mustChange:false});
-    error.textContent="";
-    document.getElementById("passwordChangeDialog").close();
-    alert("Your new password has been saved.");
-  });
-
-  if(logout)logout.onclick=()=>{
-    sessionStorage.removeItem(SESSION_KEY);
-    location.reload();
-  };
-
-  document.getElementById("cloudSetupBtn")?.addEventListener("click",()=>{
-    const a=getAuth();
-    const u=document.getElementById("adminLoginUsername");
-    const t=document.getElementById("adminSessionTimeout");
-    if(u)u.value=a.username;
-    if(t)t.value=String(a.timeoutMinutes||60);
-  });
-
-  document.getElementById("cloudSetupForm")?.addEventListener("submit",()=>{
-    const a=getAuth();
-    const u=document.getElementById("adminLoginUsername")?.value.trim()||a.username;
-    const timeout=Number(document.getElementById("adminSessionTimeout")?.value||60);
-    const p1=document.getElementById("adminNewPassword")?.value||"";
-    const p2=document.getElementById("adminConfirmPassword")?.value||"";
-    if(p1||p2){
-      if(!validPassword(p1)){alert("The new password must contain at least 10 characters.");return;}
-      if(p1!==p2){alert("The new passwords do not match.");return;}
-      saveAuth({username:u,password:p1,mustChange:false,timeoutMinutes:timeout});
-    }else saveAuth({username:u,timeoutMinutes:timeout});
-  },true);
+ const loginForm=document.getElementById("loginForm"),loginError=document.getElementById("loginError"),username=document.getElementById("loginUsername"),password=document.getElementById("loginPassword"),toggle=document.getElementById("togglePasswordBtn"),logout=document.getElementById("logoutBtn"),changeForm=document.getElementById("passwordChangeForm");
+ if(sessionValid())unlock();else lock();
+ if(toggle)toggle.onclick=()=>{const v=password.type==="text";password.type=v?"password":"text";toggle.textContent=v?"Show":"Hide";};
+ loginForm?.addEventListener("submit",e=>{e.preventDefault();const user=getUsers().find(u=>u.active&&u.username.toLowerCase()===username.value.trim().toLowerCase()&&u.password===password.value);if(!user){loginError.textContent="The username or password is incorrect, or this account is disabled.";return;}loginError.textContent="";startSession(user);unlock();password.value="";if(user.mustChange){const d=document.getElementById("passwordChangeDialog");if(d&&!d.open)d.showModal();}});
+ changeForm?.addEventListener("submit",e=>{e.preventDefault();const p1=document.getElementById("firstNewPassword").value,p2=document.getElementById("firstConfirmPassword").value,error=document.getElementById("passwordChangeError"),current=getCurrentUser();if(!validPassword(p1)){error.textContent="Use at least 10 characters.";return;}if(p1!==p2){error.textContent="The passwords do not match.";return;}const users=getUsers(),u=users.find(x=>x.id===current.id);u.password=p1;u.mustChange=false;saveUsers(users);error.textContent="";document.getElementById("passwordChangeDialog").close();alert("Your new password has been saved.");});
+ logout?.addEventListener("click",()=>{sessionStorage.removeItem(SESSION_KEY);location.reload();});
 });

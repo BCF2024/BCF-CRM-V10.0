@@ -7,6 +7,10 @@
   <title>BearCrest CRM — Version 10.0</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
+
+<style id="v11Styles">
+.v11-row{display:grid;grid-template-columns:minmax(220px,1fr) auto auto auto;gap:12px;align-items:center;padding:14px 10px;border-bottom:1px solid #e5e7e5}.v11-row small{display:block;color:#68736c;margin-top:4px}.submission-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.submission-preview{margin-top:18px;padding:18px;background:#f6f7f4;border:1px solid #dfe4df;border-radius:10px}.submission-head{display:flex;align-items:center;gap:12px;border-bottom:2px solid #b59a52;padding-bottom:10px}.submission-head img{width:58px}.submission-head div:last-child{margin-left:auto;text-align:right}.submission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.submission-grid div{background:white;border:1px solid #e1e5e1;padding:9px;border-radius:6px}.submission-grid small{display:block;color:#6c746f}.submission-notes{background:white;border:1px solid #e1e5e1;padding:12px;border-radius:6px}.submission-notes h3{margin-top:0}.hidden{display:none!important}@media(max-width:800px){.submission-stats,.submission-grid{grid-template-columns:1fr 1fr}.v11-row{grid-template-columns:1fr auto}.v11-row button{grid-column:auto}}
+</style>
 </head>
 <body class="auth-locked v5-body">
   <section id="loginScreen" class="login-screen" aria-label="Secure login">
@@ -57,6 +61,8 @@
         <button class="nav-item" data-view="communication">✉ <span>Communication</span></button>
         <button class="nav-item" data-view="reports">▥ <span>Reports</span></button>
         <button class="nav-item" data-view="archive">▣ <span>Archive</span></button>
+        <button class="nav-item" data-view="submissions">⇧ <span>Submissions</span></button>
+        <button class="nav-item admin-only" data-view="users">♟ <span>Users</span></button>
         <button class="nav-item" id="sidebarSettingsBtn">⚙ <span>Settings</span></button>
       </nav>
 
@@ -439,6 +445,18 @@
         </section>
 
 
+
+        <section id="submissionsView" class="app-view">
+          <div class="view-heading"><div><h2>Lender Submission Center</h2><p>Create lender-ready deal summaries and track every submission.</p></div></div>
+          <section class="submission-stats" id="submissionStats"></section>
+          <section class="v5-card"><div id="submissionCenterList"></div></section>
+        </section>
+
+        <section id="usersView" class="app-view admin-only">
+          <div class="view-heading"><div><h2>User Management</h2><p>Create employee access, assign roles, and deactivate accounts.</p></div><button id="addUserBtn" class="primary">+ Add User</button></div>
+          <section class="v5-card"><div id="userManagementList"></div></section>
+        </section>
+
         <section id="placeholderView" class="app-view">
           <div class="view-heading"><div><h2 id="placeholderTitle">Coming Soon</h2><p id="placeholderText"></p></div></div>
           <div class="v5-card empty-module">
@@ -452,7 +470,7 @@
 
       <footer class="status-footer">
         <span>© 2026 BearCrest Funding, LLC</span>
-        <span id="v5FooterStats">BearCrest CRM · Version 10.0</span>
+        <span id="v5FooterStats">BearCrest CRM · Version 11.0</span>
       </footer>
     </div>
   </div>
@@ -480,6 +498,7 @@
         <label>Available Liquidity<input id="liquidity" type="number" step="100" /></label>
         <label>Property Type<select id="propertyType"><option>Single Family</option><option>2–4 Unit</option><option>Condo</option><option>Townhome</option><option>Multifamily</option><option>Mixed Use</option><option>Other</option></select></label>
         <label>Rural Property?<select id="rural"><option>No</option><option>Yes</option><option>Unknown</option></select></label>
+        <label>Assigned Team Member<select id="assignedTo"><option value="">Unassigned</option></select></label>
         <label>Status<select id="status"><option>New Lead</option><option>Reviewing</option><option>Submitted</option><option>Approved</option><option>Closing</option><option>Closed</option><option>Dead</option><option>Archived</option></select></label>
         <label>Assigned Lender<select id="lender"><option value="">Select lender...</option></select></label>
         <label>Final Funding Partner<select id="finalLender"><option value="">Not yet funded...</option></select></label>
@@ -510,10 +529,13 @@
           <div id="clientDocumentList" class="client-document-list"><div class="empty-docs">Save or open a loan to attach documents.</div></div>
         </fieldset>
         <label class="wide">Other Missing Documents / Needs List<textarea id="missingDocs" rows="3" placeholder="Add anything not listed above..."></textarea></label>
-        <label class="wide">Notes<textarea id="notes" rows="5"></textarea></label>
+        <label class="wide">Internal Notes <small>Never included on lender sheets.</small><textarea id="internalNotes" rows="4" placeholder="Private BearCrest notes..."></textarea></label>
+        <label class="wide">Lender Notes <small>Included on the lender submission sheet.</small><textarea id="lenderNotes" rows="4" placeholder="Deal summary, strengths, compensating factors, and special circumstances..."></textarea></label>
+        <label class="wide">General Notes<textarea id="notes" rows="4"></textarea></label>
       </div>
       <div class="document-actions">
         <span>Generate:</span>
+        <button type="button" id="lenderSubmissionBtn" class="primary">Lender Submission</button>
         <button type="button" id="termSheetBtn">Term Sheet</button>
         <button type="button" id="needsListBtn">Needs List</button>
         <button type="button" id="preapprovalBtn">Approval Letter</button>
@@ -714,6 +736,41 @@ getfunded@bearcrest.com</textarea></label>
     </form>
   </dialog>
 
+
+  <dialog id="userDialog">
+    <form id="userForm" class="setup-wrap operations-dialog">
+      <div class="dialog-header"><h2 id="userDialogTitle">Add User</h2><button type="button" id="closeUserDialogBtn" class="close-btn">×</button></div>
+      <input type="hidden" id="userId" />
+      <div class="settings-grid">
+        <label>Full Name<input id="userFullName" required /></label>
+        <label>Username<input id="userUsername" required autocomplete="off" /></label>
+        <label>Role<select id="userRole"><option>Loan Officer</option><option>Processor</option><option>View Only</option><option>Administrator</option></select></label>
+        <label>Status<select id="userActive"><option value="true">Active</option><option value="false">Disabled</option></select></label>
+        <label class="wide">Temporary Password<input id="userPassword" type="password" minlength="10" placeholder="At least 10 characters" autocomplete="new-password" /></label>
+        <label class="wide email-option"><input id="userMustChange" type="checkbox" checked /> Require password change at next login</label>
+      </div>
+      <div class="dialog-actions"><button type="button" id="deleteUserBtn" class="danger hidden">Delete</button><div class="spacer"></div><button type="button" id="cancelUserBtn">Cancel</button><button type="submit" class="primary">Save User</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="lenderSubmissionDialog">
+    <form id="lenderSubmissionForm" class="setup-wrap operations-dialog submission-dialog">
+      <div class="dialog-header"><div><small>LENDER-READY SUMMARY</small><h2>Create Lender Submission</h2></div><button type="button" id="closeLenderSubmissionBtn" class="close-btn">×</button></div>
+      <input type="hidden" id="submissionLoanId" />
+      <div class="settings-grid">
+        <label>Lender<select id="submissionLender"><option value="">Select lender...</option></select></label>
+        <label>Submission Status<select id="submissionStatus"><option>Preparing</option><option>Submitted</option><option>Reviewing</option><option>Approved</option><option>Declined</option><option>Withdrawn</option></select></label>
+        <label>Date Submitted<input id="submissionDate" type="date" /></label>
+        <label>Follow-Up Date<input id="submissionFollowUp" type="date" /></label>
+        <label class="wide">Lender Contact<input id="submissionContact" placeholder="Name or email" /></label>
+        <label class="wide">Lender-Facing Notes<textarea id="submissionNotes" rows="5" placeholder="Deal strengths, compensating factors, exceptions requested, and anything the lender should know..."></textarea></label>
+        <label class="wide">Response / Terms<textarea id="submissionResponse" rows="3" placeholder="Approval terms, decline reason, requested items, or response..."></textarea></label>
+      </div>
+      <div class="submission-preview" id="submissionPreview"></div>
+      <div class="dialog-actions"><button type="button" id="printSubmissionBtn">Print / Save PDF</button><div class="spacer"></div><button type="button" id="cancelSubmissionBtn">Cancel</button><button type="submit" class="primary">Save Submission</button></div>
+    </form>
+  </dialog>
+
   <dialog id="passwordChangeDialog">
     <form id="passwordChangeForm" class="setup-wrap password-change-wrap">
       <div class="dialog-header"><h2>Create Your Private Password</h2></div>
@@ -766,6 +823,7 @@ getfunded@bearcrest.com</textarea></label>
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script src="auth.js"></script>
+  <script src="v11.js"></script>
   <script>
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(console.error));

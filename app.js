@@ -3,7 +3,7 @@ const OLD_STORAGE_KEY = "bearcrest_loans_v4_1_none";
 const $ = id => document.getElementById(id);
 const STATUSES = ["New Lead","Reviewing","Submitted","Approved","Closing","Closed","Dead","Archived"];
 const DOCS = ["Government-issued ID","Bank/asset statements","Entity documents","Purchase contract","Insurance information","Property photos","Scope of work / budget","Experience worksheet","Lease / rent information","Payoff statement"];
-const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","propertyAddress","loanAmount","purchasePrice","rehabBudget","asIsValue","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","processingFee","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural"];
+const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","propertyAddress","loanAmount","purchasePrice","rehabBudget","asIsValue","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","processingFee","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural","assignedTo","internalNotes","lenderNotes"];
 let showBoard = false;
 let todayOnly = false;
 let archiveOnly = false;
@@ -1162,6 +1162,8 @@ const V5_PLACEHOLDERS={
   tasks:["Tasks","A focused task center for outstanding loan work.","Tasks"],
   contacts:["Contacts","Borrowers, brokers, Realtors, title contacts, and insurance contacts.","Contacts"],
   lenders:["Lenders","Manage lender contacts, guidelines, and BearCrest notes.","Funding Partners"],
+  submissions:["Lender Submissions","Prepare and track lender-ready deal summaries.","Submission Center"],
+  users:["User Management","Manage employee access and roles.","Team Access"],
   documents:["Documents","Loan documents remain accessible inside each loan file.","Documents"],
   communication:["Communication","Sent-email activity is stored inside each loan.","Communication"],
   reports:["Reports","Production and lender-performance reporting will live here.","Reports"],

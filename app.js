@@ -237,7 +237,11 @@ $("needsListBtn").onclick=()=>{
 $("preapprovalBtn").onclick=()=>{
  const COMPANY=company();
  const l=getDocData();
- printable("BearCrest Funding, LLC Approval Letter",`${banner("Preliminary Approval / Intent to Fund")}${borrowerMeta(l)}<p>Dear ${esc(l.borrowerName||"Applicant")},</p><p>Thank you for the opportunity to assist with your financing request. BearCrest Funding has reviewed the preliminary information submitted for <strong>${esc(l.propertyAddress||"the subject property")}</strong>.</p><div class="decision-box">Based on the information currently available, the request has received <strong>preliminary approval</strong> for financing of up to <strong>${money(l.loanAmount)||"an amount to be determined"}</strong> under the <strong>${esc(l.program||"applicable")}</strong> loan program.</div><p>This preliminary approval remains subject to satisfactory underwriting, valuation, title review, acceptable insurance, verification of all borrower and transaction information, receipt of required documentation, and final lender approval.</p><div class="notice"><strong>This letter is not a commitment or guarantee to lend.</strong> Loan terms, proceeds, and eligibility may change based on underwriting findings or changes to the transaction.</div><div class="signature"><p>Sincerely,</p><div class="signature-name">${esc(COMPANY.name)}</div><div>${COMPANY.phone}</div><div>${COMPANY.email}</div></div>`,{editable:true,fullEditable:true});
+ const purchase=Number(l.purchasePrice||0), loan=Number(l.loanAmount||0);
+ const downPayment=purchase&&loan?Math.max(0,purchase-loan):0;
+ const edit=v=>`<td contenteditable="true" spellcheck="true">${v}</td>`;
+ const optionTable=`<div class="section-title">Proposed Financing Option</div><table class="terms"><tr><th>Product Type</th>${edit(esc(l.program||"Bridge Loan"))}</tr><tr><th>Transaction Type</th>${edit("Purchase")}</tr><tr><th>Purchase Price</th>${edit(money(l.purchasePrice)||"To be determined")}</tr><tr><th>Maximum Loan Amount</th>${edit(money(l.loanAmount)||"To be determined")}</tr><tr><th>Estimated Down Payment</th>${edit(downPayment?money(downPayment):"To be determined")}</tr><tr><th>Proposed Closing Date</th>${edit(l.targetClosing?longDate(l.targetClosing):"To be determined")}</tr><tr><th>Payment Type</th>${edit("Interest Only")}</tr><tr><th>Term</th>${edit(esc(l.loanTerm||"12 months"))}</tr><tr><th>Interest Rate</th>${edit(esc(l.interestRate||"To be determined"))}</tr></table><div class="section-title">Estimated Fees & Cash Requirements</div><table class="terms"><tr><th>Origination Fee / Points</th>${edit(esc(l.points||"To be determined"))}</tr><tr><th>Processing Fee</th>${edit(money(l.processingFee)||esc(l.processingFee||"To be determined"))}</tr><tr><th>Document Preparation Fee</th>${edit("To be determined")}</tr><tr><th>Legal Review Fee</th>${edit("To be determined")}</tr><tr><th>Estimated Prorated Interest</th>${edit("To be determined")}</tr><tr><th>Interest Reserve</th>${edit("$0.00")}</tr><tr><th>Per Diem Interest</th>${edit("To be determined")}</tr><tr><th>Estimated 30-Day Payment</th>${edit("To be determined")}</tr><tr><th>Required Proof of Capital</th>${edit("To be determined")}</tr><tr><th>Estimated Cash to Close</th>${edit("To be determined")}</tr></table>`;
+ printable("BearCrest Funding, LLC Preliminary Approval",`${banner("Preliminary Approval / Intent to Fund")}${borrowerMeta(l)}<p>Dear ${esc(l.borrowerName||"Applicant")},</p><p>Thank you for the opportunity to assist with your financing request. BearCrest Funding has reviewed the preliminary information submitted for <strong>${esc(l.propertyAddress||"the subject property")}</strong>.</p><div class="decision-box">Based on the information currently available, the request has received <strong>preliminary approval</strong> for financing of up to <strong>${money(l.loanAmount)||"an amount to be determined"}</strong> under the <strong>${esc(l.program||"applicable")}</strong> loan program.</div>${optionTable}<div class="section-title">Loan Highlights & Conditions</div><ol><li>The proposed loan amount is an estimate and may change based on final underwriting, appraisal or valuation results, and other qualifying conditions.</li><li>Estimated cash requirements may not include all third-party settlement costs, escrow or title charges, property taxes, or insurance premiums.</li><li>Any application or third-party fees paid for the initial review may be non-refundable.</li><li>The borrower may be required to close in a legal business entity rather than as a natural person, depending on the property state and final lender requirements.</li><li>Collateral is expected to include a first-priority lien on the subject property. Additional liens require prior written lender approval.</li></ol><p>This preliminary approval remains subject to satisfactory underwriting, valuation, title review, acceptable insurance, verification of all borrower and transaction information, receipt of required documentation, and final lender approval.</p><div class="notice"><strong>This letter is not a commitment or guarantee to lend.</strong> Loan terms, proceeds, fees, and eligibility may change based on underwriting findings or changes to the transaction. Every highlighted value and paragraph may be edited before printing or saving as a PDF.</div><div class="signature"><p>Sincerely,</p><div class="signature-name">${esc(COMPANY.name)}</div><div>${COMPANY.phone}</div><div>${COMPANY.email}</div><div class="signature-line">Borrower / Guarantor Acknowledgment & Date</div></div>`,{editable:true,fullEditable:true,compact:true});
 };
 $("declineBtn").onclick=()=>{
  const COMPANY=company();
@@ -1801,7 +1805,7 @@ fillMobileSyncSettings();
 scheduleMobileCloudSync();
 
 
-// ===== BearCrest Version 6.0 Phone-First Mobile Companion =====
+// ===== Version 10.0 responsive phone interface =====
 let v6PendingFieldAction="";
 function v6IsMobile(){return window.matchMedia("(max-width:800px)").matches;}
 function v6ActiveLoans(){return loans.filter(l=>!["Closed","Dead","Archived"].includes(l.status));}
@@ -1909,7 +1913,7 @@ window.addEventListener("resize",()=>{if(v6IsMobile()&&!document.querySelector("
 setTimeout(()=>{if(v6IsMobile())v6ShowView("mobilehome");else v5ShowView("dashboard");},0);
 
 
-// ===== BearCrest Version 6.6: Separate Loans + Communications Center + Sidebar =====
+// ===== Version 10.0 loans, communications center, and sidebar =====
 const EMAIL_DRAFTS_KEY="bearcrest_email_drafts_v6_1";
 let emailDrafts=(()=>{try{return JSON.parse(localStorage.getItem(EMAIL_DRAFTS_KEY)||"[]");}catch{return [];}})();
 function saveEmailDrafts(){localStorage.setItem(EMAIL_DRAFTS_KEY,JSON.stringify(emailDrafts));renderCommunicationCenter();}
@@ -1977,7 +1981,7 @@ if($("sidebarCollapseBtn"))$("sidebarCollapseBtn").onclick=()=>{const shell=docu
 if(localStorage.getItem("bearcrest_sidebar_collapsed")==="1")document.querySelector(".app-shell")?.classList.add("sidebar-collapsed");
 renderLoansPage();renderCommunicationCenter();
 
-/* ===== BearCrest V6.2 usability hotfix ===== */
+/* ===== Version 10.0 usability module ===== */
 (function(){
   const originalRenderBoard=renderBoard;
   renderBoard=function(list){
@@ -2019,7 +2023,7 @@ renderLoansPage();renderCommunicationCenter();
   }
 })();
 
-/* ===== BearCrest V6.3 dedicated mobile usability pass ===== */
+/* ===== Version 10.0 responsive usability module ===== */
 (function(){
   const stageNames=["Lead","Application","Submitted","Processing","Approved","Closing","Closed"];
 
@@ -2114,7 +2118,7 @@ renderLoansPage();renderCommunicationCenter();
 })();
 
 
-/* ===== BearCrest V6.5 reliable mobile navigation + live connection status ===== */
+/* ===== Version 10.0 responsive navigation and connection status ===== */
 (function(){
   function openConnectionSettings(){
     try{ fillAdminSettings(); }catch(_e){}

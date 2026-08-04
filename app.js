@@ -1695,7 +1695,7 @@ function collectCRMDatabase(){
     "bearcrest_contacts_v5_3",
     "bearcrest_sync_meta_v4_2"
   ];
-  const data={version:"5.4",savedAt:new Date().toISOString(),storage:{}};
+  const data={version:"11.0",savedAt:new Date().toISOString(),storage:{}};
   keys.forEach(key=>data.storage[key]=localStorage.getItem(key));
   return data;
 }
@@ -1807,7 +1807,7 @@ fillMobileSyncSettings();
 scheduleMobileCloudSync();
 
 
-// ===== Version 10.0 responsive phone interface =====
+// ===== Version 11.0 responsive phone interface =====
 let v6PendingFieldAction="";
 function v6IsMobile(){return window.matchMedia("(max-width:800px)").matches;}
 function v6ActiveLoans(){return loans.filter(l=>!["Closed","Dead","Archived"].includes(l.status));}
@@ -1915,7 +1915,7 @@ window.addEventListener("resize",()=>{if(v6IsMobile()&&!document.querySelector("
 setTimeout(()=>{if(v6IsMobile())v6ShowView("mobilehome");else v5ShowView("dashboard");},0);
 
 
-// ===== Version 10.0 loans, communications center, and sidebar =====
+// ===== Version 11.0 loans, communications center, and sidebar =====
 const EMAIL_DRAFTS_KEY="bearcrest_email_drafts_v6_1";
 let emailDrafts=(()=>{try{return JSON.parse(localStorage.getItem(EMAIL_DRAFTS_KEY)||"[]");}catch{return [];}})();
 function saveEmailDrafts(){localStorage.setItem(EMAIL_DRAFTS_KEY,JSON.stringify(emailDrafts));renderCommunicationCenter();}
@@ -1983,7 +1983,7 @@ if($("sidebarCollapseBtn"))$("sidebarCollapseBtn").onclick=()=>{const shell=docu
 if(localStorage.getItem("bearcrest_sidebar_collapsed")==="1")document.querySelector(".app-shell")?.classList.add("sidebar-collapsed");
 renderLoansPage();renderCommunicationCenter();
 
-/* ===== Version 10.0 usability module ===== */
+/* ===== Version 11.0 usability module ===== */
 (function(){
   const originalRenderBoard=renderBoard;
   renderBoard=function(list){
@@ -2025,7 +2025,7 @@ renderLoansPage();renderCommunicationCenter();
   }
 })();
 
-/* ===== Version 10.0 responsive usability module ===== */
+/* ===== Version 11.0 responsive usability module ===== */
 (function(){
   const stageNames=["Lead","Application","Submitted","Processing","Approved","Closing","Closed"];
 
@@ -2120,7 +2120,7 @@ renderLoansPage();renderCommunicationCenter();
 })();
 
 
-/* ===== Version 10.0 responsive navigation and connection status ===== */
+/* ===== Version 11.0 responsive navigation and connection status ===== */
 (function(){
   function openConnectionSettings(){
     try{ fillAdminSettings(); }catch(_e){}
@@ -2499,7 +2499,7 @@ $("loadAugustaDealBtn")?.addEventListener("click",()=>{const vals={matchProgram:
 $("clearDealMatchBtn")?.addEventListener("click",()=>{["matchAddress","matchFico","matchExperience","matchPurchase","matchRehab","matchArv","matchLoan","matchLiquidity"].forEach(id=>$(id).value="");$("dealMatcherSummary").classList.add("hidden");$("dealMatcherResults").classList.add("hidden");$("dealMatcherStatus").textContent="";});
 
 
-// ===== BearCrest Version 10.0: Smart Address Completion =====
+// ===== BearCrest Version 11.0: Smart Address Completion =====
 let bcfPlacesPromise=null;
 function bcfLoadGooglePlaces(){
   const a=getAdminSettings();

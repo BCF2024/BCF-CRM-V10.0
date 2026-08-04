@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#073f2c" />
-  <title>BearCrest CRM — Version 10.0</title>
+  <title>BearCrest CRM — Version 11.0 – Multi-User Edition</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
 
@@ -18,7 +18,7 @@
       <img src="bcf-logo.png" alt="BearCrest Funding, LLC logo" class="login-logo" />
       <div class="login-kicker">BEARCREST FUNDING, LLC</div>
       <h1>BearCrest CRM</h1>
-      <p><strong>Version 10.0</strong><br>Sign in to access your private lending dashboard.</p>
+      <p><strong data-app-version>Version 11.0 – Multi-User Edition</strong><br>Sign in to access your private lending dashboard.</p>
       <form id="loginForm" autocomplete="on">
         <label>Username<input id="loginUsername" autocomplete="username" required /></label>
         <label>Password<div class="password-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required /><button id="togglePasswordBtn" type="button" class="show-password">Show</button></div></label>
@@ -31,7 +31,7 @@
 
   <div class="mobile-appbar">
     <button id="mobileMenuBtn" aria-label="Open navigation">☰</button>
-    <div><strong>BearCrest CRM</strong><small>Version 10.0</small></div>
+    <div><strong>BearCrest CRM</strong><small data-app-version>Version 11.0 – Multi-User Edition</small></div>
     <button id="mobileConnectionStatus" class="connection-status-pill is-checking" type="button" aria-label="Connection status" title="Open connection settings"><i></i><span>Checking</span></button>
     <button id="mobileQuickAddBtn" aria-label="Add loan">＋</button>
   </div>
@@ -84,7 +84,7 @@
     <div class="workspace">
       <header class="topbar">
         <div>
-          <h1>BEARCREST CRM <span>VERSION 10.0</span></h1>
+          <h1>BEARCREST CRM <span data-app-version>VERSION 11.0 – MULTI-USER EDITION</span></h1>
           <p id="viewSubtitle">Business-purpose lending operations dashboard</p>
         </div>
         <div class="top-actions">
@@ -582,7 +582,7 @@
       <div class="settings-section"><h3>Smart Address Completion</h3><div class="settings-grid">
         <label class="wide">Google Maps API Key<input id="googlePlacesApiKey" type="password" placeholder="Optional — enables address suggestions as you type" /><small>Enable Maps JavaScript API and Places API in Google Cloud. The key stays in this browser.</small></label>
         <label>Address Suggestions<select id="addressAutocompleteEnabled"><option value="on">On</option><option value="off">Off</option></select></label>
-        <div class="wide setup-note">This validates addresses entered inside the CRM. JotForm address autocomplete is configured separately in the JotForm builder; see JOTFORM_ADDRESS_SETUP.txt included with Version 10.</div>
+        <div class="wide setup-note">This validates addresses entered inside the CRM. JotForm address autocomplete is configured separately in the JotForm builder; see JOTFORM_ADDRESS_SETUP.txt included with Version 11.0.</div>
       </div></div>
       <div class="settings-section"><h3>Google Email</h3><div class="settings-grid">
         <label>Sender Display Name<input id="adminEmailSenderName" value="BearCrest Funding, LLC" /></label>
@@ -821,6 +821,18 @@ getfunded@bearcrest.com</textarea></label>
     <div id="mobilePickerList" class="mobile-picker-list"></div>
   </dialog>
   <script src="config.js"></script>
+  <script>
+  (() => {
+    const cfg = window.BEARCREST_CONFIG || {};
+    const version = cfg.appVersion || "11.0";
+    const edition = cfg.edition || "Multi-User Edition";
+    const label = `Version ${version} – ${edition}`;
+    document.title = `BearCrest CRM — ${label}`;
+    document.querySelectorAll("[data-app-version]").forEach((el) => {
+      el.textContent = el.tagName === "SPAN" ? label.toUpperCase() : label;
+    });
+  })();
+  </script>
   <script src="app.js"></script>
   <script src="auth.js"></script>
   <script src="v11.js"></script>

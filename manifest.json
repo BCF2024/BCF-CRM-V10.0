@@ -1,7 +1,7 @@
 {
-  "name": "BearCrest CRM 10.0",
+  "name": "BearCrest CRM 11.0",
   "short_name": "BearCrest CRM",
-  "description": "BearCrest Funding CRM Version 10 with lender matching, deal packages, contacts sync, and smart addresses",
+  "description": "BearCrest Funding CRM Version 11.0 Multi-User Edition with lender matching, deal packages, contacts sync, and smart addresses",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

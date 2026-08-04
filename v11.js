@@ -1,4 +1,5 @@
 (function(){
+const APP_VERSION=window.BEARCREST_CONFIG?.appVersion||"11.0",APP_EDITION=window.BEARCREST_CONFIG?.edition||"Multi-User Edition";
 const SUB_KEY="bearcrest_lender_submissions_v11",AUDIT_KEY="bearcrest_audit_v11",MASTER_KEY=typeof STORAGE_KEY!=="undefined"?STORAGE_KEY:"bearcrest_loans_v4_1_clean";
 const getUser=()=>window.BearCrestAuth?.getCurrentUser?.();
 const isAdmin=()=>window.BearCrestAuth?.isAdmin?.();
@@ -10,7 +11,7 @@ function canView(l){const u=getUser();return !u||u.role==="Administrator"||l.ass
 function applyRole(){
  const u=getUser();if(!u)return;
  document.querySelectorAll(".admin-only").forEach(el=>el.classList.toggle("hidden",u.role!=="Administrator"));
- const footer=document.getElementById("v5FooterStats");if(footer)footer.textContent=`BearCrest CRM · Version 11.0 · ${u.fullName} (${u.role})`;
+ const footer=document.getElementById("v5FooterStats");if(footer)footer.textContent=`BearCrest CRM · Version ${APP_VERSION} – ${APP_EDITION} · ${u.fullName} (${u.role})`;
  if(u.role!=="Administrator"){
    const master=readMaster();window.__bcfMasterLoans=master;loans=master.filter(canView).map(normalizeLoan);
    const originalSave=window.__bcfOriginalSave||save;window.__bcfOriginalSave=originalSave;

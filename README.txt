@@ -1,44 +1,22 @@
-BEARCREST CRM VERSION 11.0 — MULTI-USER EDITION
-============================================================
+BEARCREST CRM VERSION 11.1 — AUTOMATED ARV & SUBMISSION UPDATE
 
-NEW IN VERSION 11.0
-- Individual employee usernames and passwords
-- Roles: Administrator, Loan Officer, Processor, and View Only
-- User activation/deactivation and forced password change
-- Loan assignment by team member
-- Employees see only loans assigned to them
-- Administrator sees all loans
-- Separate Internal Notes and Lender Notes
-- Lender Submission Summary with print/save-to-PDF support
-- Lender submission status, response, follow-up date, and history
-- Submission Center and User Management screens
-- Basic activity audit trail
+NEW IN VERSION 11.1
 
-FIRST LOGIN
-The existing Version 10.0 administrator username and password are migrated automatically.
-If Version 10.0 had never been opened in the browser, use:
-Username: admin
-Temporary password: BearCrest2026!
-You will be prompted to replace the temporary password.
+1. Deal Analyzer address field accepts typing, paste, and drag/drop text.
+2. Google Places address autocomplete remains available when configured in Admin Settings.
+3. Comparable sales now include selection checkboxes.
+4. Suggested ARV is calculated automatically from selected comps using median price per square foot and subject square footage; median sale price is used as a fallback.
+5. Removing a comp and pressing Recalculate ARV updates the ARV, spread, ROI, 70% rule, and deal grade.
+6. A manual ARV override remains available but is optional.
+7. Loan records now include Transaction Type: Purchase, Refinance, or Delayed Purchase.
+8. Transaction Type appears in lender submission summaries and generated application information.
+9. Version and service-worker cache updated throughout to Version 11.1.
 
-ADDING AN EMPLOYEE
-1. Sign in as Administrator.
-2. Open Users in the left menu.
-3. Select Add User.
-4. Enter the employee name, username, temporary password, and role.
-5. Assign loans to that employee from the Assigned Team Member field inside each loan.
+INSTALLATION
+Upload and replace every file in this package in the same GitHub repository. The service worker cache name changed, which helps force browsers and installed phone shortcuts to load Version 11.1. After GitHub Pages updates, perform one hard refresh.
 
-LENDER SUBMISSIONS
-1. Open a saved loan.
-2. Enter private notes under Internal Notes.
-3. Enter lender-facing information under Lender Notes.
-4. Select Lender Submission in the Generate area.
-5. Choose the lender, status, dates, contact, and notes.
-6. Print or save the summary as a PDF, then save the submission to its history.
+ADDRESS AUTOCOMPLETE
+In CRM Admin Settings, enter a Google Maps API key with Maps JavaScript API and Places API enabled. Paste and drag/drop cleanup work even without the API key.
 
-IMPORTANT SECURITY NOTE
-Version 11.0 adds role-based access within the CRM browser application. Credentials and data remain stored through the CRM's existing browser/cloud-sync architecture. For enterprise-grade authentication enforced on a central server, the next deployment stage should move user verification and permissions into Google Apps Script or another secured backend. Do not publish the CRM as an unrestricted public website.
-
-
-VERSION DISPLAY
-The app version is now controlled from config.js using appVersion and edition. Login, header, browser title, and signed-in footer all display Version 11.0 – Multi-User Edition.
+AUTOMATED ARV NOTICE
+The calculated ARV is a preliminary underwriting tool. Keep only truly comparable renovated sales and independently verify condition, sale status, distance, square footage, and market relevance before issuing terms.

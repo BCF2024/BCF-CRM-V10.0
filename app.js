@@ -3,7 +3,7 @@ const OLD_STORAGE_KEY = "bearcrest_loans_v4_1_none";
 const $ = id => document.getElementById(id);
 const STATUSES = ["New Lead","Reviewing","Submitted","Approved","Closing","Closed","Dead","Archived"];
 const DOCS = ["Government-issued ID","Bank/asset statements","Entity documents","Purchase contract","Insurance information","Property photos","Scope of work / budget","Experience worksheet","Lease / rent information","Payoff statement"];
-const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","propertyAddress","loanAmount","purchasePrice","rehabBudget","asIsValue","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","processingFee","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural","assignedTo","internalNotes","lenderNotes"];
+const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","transactionType","propertyAddress","loanAmount","purchasePrice","rehabBudget","asIsValue","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","processingFee","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural","assignedTo","internalNotes","lenderNotes"];
 let showBoard = false;
 let todayOnly = false;
 let archiveOnly = false;
@@ -2207,7 +2207,7 @@ function applicationFieldRows(loan){
   const money=value=>value!==""&&value!==null&&value!==undefined?currency0(value):"";
   return [
     ["Loan Number",loan.loanNumber],["Date Received",loan.dateReceived],["Borrower Name",loan.borrowerName],
-    ["Phone",loan.phone],["Email",loan.email],["Borrowing Entity",loan.entityName],["Loan Program",loan.program],
+    ["Phone",loan.phone],["Email",loan.email],["Borrowing Entity",loan.entityName],["Loan Program",loan.program],["Transaction Type",loan.transactionType||"Purchase"],
     ["Property Address",loan.propertyAddress],["Loan Amount",money(loan.loanAmount)],["Purchase Price",money(loan.purchasePrice)],
     ["Rehab Budget",money(loan.rehabBudget)],["As-Is Value",money(loan.asIsValue)],["Estimated ARV",money(loan.arv)],["Target Closing Date",loan.targetClosing],
     ["Exit Strategy",loan.exitStrategy],["Interest Rate",loan.interestRate],["Origination Points",loan.points],["BearCrest Processing Fee",money(loan.processingFee)],
@@ -2310,39 +2310,61 @@ function createDealPackagePdf(){
   if(!w)return alert("Allow pop-ups to create the deal package.");
   w.document.write(dealPackagePrintHtml(loan,lastDealAnalysis));w.document.close();
 }
-function renderDealAnalysis(data,input){
-  lastDealAnalysis={data,input,generatedAt:new Date().toISOString()};
+function bcfCompPrice(c){return Number(c.price||c.lastSalePrice||0)}
+function bcfCompSqft(c){return Number(c.squareFootage||0)}
+function bcfSuggestedArv(data,selectedIndexes){
+  const comps=Array.isArray(data.comparables)?data.comparables:[];
+  const chosen=comps.filter((_,i)=>selectedIndexes.includes(i));
+  const subjectSqft=Number(data.squareFootage||data.property?.squareFootage||0);
+  const ppsf=chosen.map(c=>{const p=bcfCompPrice(c),s=bcfCompSqft(c);return p>0&&s>0?p/s:0}).filter(v=>v>0);
+  const prices=chosen.map(bcfCompPrice).filter(v=>v>0);
+  const medPpsf=median(ppsf), medPrice=median(prices);
+  const suggested=subjectSqft&&medPpsf?subjectSqft*medPpsf:medPrice;
+  return {suggested,medPpsf,medPrice,subjectSqft,count:chosen.length};
+}
+function recalculateDealArv(){
+  if(!lastDealAnalysis)return;
+  const checks=[...document.querySelectorAll('.deal-comp-select')];
+  const selected=checks.filter(x=>x.checked).map(x=>Number(x.dataset.index));
+  lastDealAnalysis.selectedIndexes=selected;
+  renderDealAnalysis(lastDealAnalysis.data,lastDealAnalysis.input,selected);
+}
+window.recalculateDealArv=recalculateDealArv;
+function renderDealAnalysis(data,input,selectedIndexes){
+  const comps=Array.isArray(data.comparables)?data.comparables:[];
+  if(!Array.isArray(selectedIndexes))selectedIndexes=comps.map((_,i)=>i);
+  lastDealAnalysis={data,input,selectedIndexes,generatedAt:new Date().toISOString()};
+  const calc=bcfSuggestedArv(data,selectedIndexes);
   const linkedLoan=selectedDealPackageLoan();
-  if(linkedLoan){linkedLoan.asIsValue=String(Number(data.price||data.value||0)||"");save();}
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
-  const manualArv=Number(input.arvOverride||0), analysisValue=manualArv||asIs;
+  const manualArv=Number(input.arvOverride||0), automatedArv=Math.round(calc.suggested/1000)*1000, analysisValue=manualArv||automatedArv||asIs;
+  if(linkedLoan){linkedLoan.asIsValue=String(asIs||"");linkedLoan.arv=String(analysisValue||"");save();}
   const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
   const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab, grade=dealGrade(spread,roi,allIn,analysisValue);
-  const comps=Array.isArray(data.comparables)?data.comparables:[];
-  const soldPrices=comps.map(c=>Number(c.price||c.lastSalePrice||0)).filter(v=>v>0);
-  const ppsf=comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return price>0&&sf>0?price/sf:0;}).filter(v=>v>0);
-  const medComp=median(soldPrices), medPpsf=median(ppsf);
   const mismatch=(purchase>0&&high>0&&purchase>high*1.75)||(asIs>0&&purchase>0&&asIs<purchase*.4);
-  const valueLabel=manualArv?'ARV Used for Analysis':'Automated As-Is Value Used';
   const warnings=[];
-  if(!manualArv)warnings.push('No renovated-comp ARV was entered, so calculations are using RentCast’s automated as-is estimate.');
-  if(mismatch)warnings.push('The purchase price is far outside the returned value range. Confirm the address and review every comp before relying on this result.');
+  if(!calc.count)warnings.push('Select at least one comparable sale to calculate an automated ARV.');
+  if(!calc.subjectSqft)warnings.push('Subject square footage was not returned, so the suggested ARV uses the median selected sale price.');
+  if(mismatch)warnings.push('The purchase price is far outside the returned value range. Confirm the address and review every comp.');
   if(!comps.length)warnings.push('No comparable sales were returned.');
   $("dealAnalyzerResults").classList.remove("hidden");
   $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid">
     <div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div>
     <div class="deal-metric"><small>Automated As-Is Range</small><strong>${currency0(low)} – ${currency0(high)}</strong></div>
-    <div class="deal-metric"><small>${valueLabel}</small><strong>${currency0(analysisValue)}</strong></div>
-    <div class="deal-metric"><small>Median Comp Sale</small><strong>${currency0(medComp)}</strong></div>
-    <div class="deal-metric"><small>Median Comp Price / Sq. Ft.</small><strong>${medPpsf?currency0(medPpsf):'—'}</strong></div>
+    <div class="deal-metric"><small>Suggested ARV from Selected Comps</small><strong>${currency0(automatedArv)}</strong></div>
+    <div class="deal-metric"><small>ARV Used for Analysis</small><strong>${currency0(analysisValue)}</strong></div>
+    <div class="deal-metric"><small>Selected Comps</small><strong>${calc.count}</strong></div>
+    <div class="deal-metric"><small>Subject Sq. Ft.</small><strong>${calc.subjectSqft?Math.round(calc.subjectSqft).toLocaleString():'—'}</strong></div>
+    <div class="deal-metric"><small>Median Selected Price / Sq. Ft.</small><strong>${calc.medPpsf?currency0(calc.medPpsf):'—'}</strong></div>
     <div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div>
     <div class="deal-metric"><small>Estimated Net Spread</small><strong>${currency0(spread)}</strong></div>
     <div class="deal-metric"><small>Estimated ROI</small><strong>${roi.toFixed(1)}%</strong></div>
     <div class="deal-metric"><small>70% Rule Max Purchase</small><strong>${currency0(max70)}</strong></div>
-    <div class="deal-metric"><small>Project Cost / Analysis Value</small><strong>${analysisValue?(allIn/analysisValue*100).toFixed(1):"0.0"}%</strong></div>
+    <div class="deal-metric"><small>Project Cost / ARV</small><strong>${analysisValue?(allIn/analysisValue*100).toFixed(1):"0.0"}%</strong></div>
     <div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div>
-  </div><div class="deal-note"><b>Important:</b> Rehab dollars do not automatically increase value dollar-for-dollar. RentCast supplies an automated as-is estimate and sales comps; a true ARV must be supported by renovated comparable sales.${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
-  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return `<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="7">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
+  </div><div class="deal-note"><b>How it works:</b> The CRM calculates the median price per square foot from the comps you keep selected and applies it to the subject property. Uncheck poor comps and press <b>Recalculate ARV</b>.${manualArv?'<br><b>Manual override active:</b> The entered override is being used for deal calculations.':''}${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
+  <div class="deal-actions"><button type="button" class="primary" onclick="recalculateDealArv()">Recalculate ARV</button><span>Choose only renovated, similar, nearby sales.</span></div>
+  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Use</th><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map((c,i)=>{const price=bcfCompPrice(c),sf=bcfCompSqft(c);return `<tr><td><input class="deal-comp-select" data-index="${i}" type="checkbox" ${selectedIndexes.includes(i)?'checked':''} aria-label="Use comparable ${i+1}"></td><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="8">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
@@ -2499,7 +2521,19 @@ $("loadAugustaDealBtn")?.addEventListener("click",()=>{const vals={matchProgram:
 $("clearDealMatchBtn")?.addEventListener("click",()=>{["matchAddress","matchFico","matchExperience","matchPurchase","matchRehab","matchArv","matchLoan","matchLiquidity"].forEach(id=>$(id).value="");$("dealMatcherSummary").classList.add("hidden");$("dealMatcherResults").classList.add("hidden");$("dealMatcherStatus").textContent="";});
 
 
-// ===== BearCrest Version 11.0: Smart Address Completion =====
+// ===== BearCrest Version 11.1: Paste-safe property addresses =====
+function bcfCleanAddressText(value){
+  let text=String(value||'').replace(/\r?\n+/g,', ').replace(/\s+/g,' ').replace(/,+/g,',').trim();
+  const match=text.match(/\b\d{1,6}\s+[A-Za-z0-9.'#\- ]+(?:Street|St|Road|Rd|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Way|Parkway|Pkwy|Highway|Hwy|Place|Pl|Terrace|Ter|Circle|Cir)\b[^;|]*/i);
+  return (match?match[0]:text).replace(/\s+,/g,',').trim();
+}
+['propertyAddress','dealAddress','matchAddress','contactAddress'].forEach(id=>{
+  const el=$(id);if(!el)return;
+  el.addEventListener('paste',()=>setTimeout(()=>{el.value=bcfCleanAddressText(el.value);el.dispatchEvent(new Event('input',{bubbles:true}));},0));
+  el.addEventListener('drop',()=>setTimeout(()=>{el.value=bcfCleanAddressText(el.value);el.dispatchEvent(new Event('input',{bubbles:true}));},0));
+});
+
+// ===== BearCrest Version 11.1: Smart Address Completion =====
 let bcfPlacesPromise=null;
 function bcfLoadGooglePlaces(){
   const a=getAdminSettings();

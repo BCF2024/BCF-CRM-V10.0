@@ -2278,6 +2278,7 @@ function loadLoanIntoDealAnalyzer(){
   $("dealAddress").value=loan.propertyAddress||"";
   $("dealPurchasePrice").value=loan.purchasePrice||"";
   $("dealRehabBudget").value=loan.rehabBudget||"";
+  $("dealSquareFootage").value=loan.squareFootage||loan.propertySquareFootage||loan.sqft||"";
   $("dealArvOverride").value=loan.arv||"";
   $("dealAnalyzerStatus").textContent=`Loaded ${loan.loanNumber||loan.borrowerName||"application"}. Run Analyze Deal to pull comps.`;
 }
@@ -2315,7 +2316,7 @@ function bcfCompSqft(c){return Number(c.squareFootage||0)}
 function bcfSuggestedArv(data,selectedIndexes){
   const comps=Array.isArray(data.comparables)?data.comparables:[];
   const chosen=comps.filter((_,i)=>selectedIndexes.includes(i));
-  const subjectSqft=Number(data.squareFootage||data.property?.squareFootage||0);
+  const subjectSqft=Number(input?.squareFootage||data.squareFootage||data.property?.squareFootage||0);
   const ppsf=chosen.map(c=>{const p=bcfCompPrice(c),s=bcfCompSqft(c);return p>0&&s>0?p/s:0}).filter(v=>v>0);
   const prices=chosen.map(bcfCompPrice).filter(v=>v>0);
   const medPpsf=median(ppsf), medPrice=median(prices);
@@ -2338,13 +2339,13 @@ function renderDealAnalysis(data,input,selectedIndexes){
   const linkedLoan=selectedDealPackageLoan();
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
   const manualArv=Number(input.arvOverride||0), automatedArv=Math.round(calc.suggested/1000)*1000, analysisValue=manualArv||automatedArv||asIs;
-  if(linkedLoan){linkedLoan.asIsValue=String(asIs||"");linkedLoan.arv=String(analysisValue||"");save();}
+  if(linkedLoan){linkedLoan.asIsValue=String(asIs||"");linkedLoan.arv=String(analysisValue||"");if(calc.subjectSqft)linkedLoan.squareFootage=String(calc.subjectSqft);save();}
   const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
   const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab, grade=dealGrade(spread,roi,allIn,analysisValue);
   const mismatch=(purchase>0&&high>0&&purchase>high*1.75)||(asIs>0&&purchase>0&&asIs<purchase*.4);
   const warnings=[];
   if(!calc.count)warnings.push('Select at least one comparable sale to calculate an automated ARV.');
-  if(!calc.subjectSqft)warnings.push('Subject square footage was not returned, so the suggested ARV uses the median selected sale price.');
+  if(!calc.subjectSqft)warnings.push('Enter the subject property square footage so the suggested ARV can use the selected comps’ price per square foot. Until then, it uses the median selected sale price.');
   if(mismatch)warnings.push('The purchase price is far outside the returned value range. Confirm the address and review every comp.');
   if(!comps.length)warnings.push('No comparable sales were returned.');
   $("dealAnalyzerResults").classList.remove("hidden");
@@ -2368,7 +2369,7 @@ function renderDealAnalysis(data,input,selectedIndexes){
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
-  const input={address,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
+  const input={address,squareFootage:$("dealSquareFootage").value,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
   try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
@@ -2377,7 +2378,7 @@ $("loadDealLoanBtn")?.addEventListener("click",loadLoanIntoDealAnalyzer);
 $("createDealPackageBtn")?.addEventListener("click",createDealPackagePdf);
 $("dealLoanSelect")?.addEventListener("focus",refreshDealPackageLoanPicker);
 refreshDealPackageLoanPicker();
-$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;["dealAddress","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;["dealAddress","dealSquareFootage","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
 
 
 

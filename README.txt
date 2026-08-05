@@ -10,10 +10,10 @@ NEW IN VERSION 11.1
 6. A manual ARV override remains available but is optional.
 7. Loan records now include Transaction Type: Purchase, Refinance, or Delayed Purchase.
 8. Transaction Type appears in lender submission summaries and generated application information.
-9. Version and service-worker cache updated throughout to Version 11.1.
+9. Version and service-worker cache updated throughout to Version 11.1.1.
 
 INSTALLATION
-Upload and replace every file in this package in the same GitHub repository. The service worker cache name changed, which helps force browsers and installed phone shortcuts to load Version 11.1. After GitHub Pages updates, perform one hard refresh.
+Upload and replace every file in this package in the same GitHub repository. The service worker cache name changed, which helps force browsers and installed phone shortcuts to load Version 11.1.1. After GitHub Pages updates, perform one hard refresh.
 
 ADDRESS AUTOCOMPLETE
 In CRM Admin Settings, enter a Google Maps API key with Maps JavaScript API and Places API enabled. Paste and drag/drop cleanup work even without the API key.

@@ -8,7 +8,7 @@
   appsScriptUrl: "https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
 */
 window.BEARCREST_CONFIG = Object.freeze({
-  appVersion: "11.1.1",
+  appVersion: "11.1.2",
   edition: "Multi-User Edition",
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbysco3_58G625JCTFsNCsnEmKAfd0Gh9YH2IPs4eD9SGm72nrUBbsfRXSpZ57vliOietQ/exec"
 });

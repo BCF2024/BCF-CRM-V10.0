@@ -2563,3 +2563,53 @@ function bcfApplyAddressAutocomplete(){
 }
 document.addEventListener("focusin",e=>{if(["propertyAddress","dealAddress","matchAddress","contactAddress"].includes(e.target?.id))bcfApplyAddressAutocomplete();});
 setTimeout(bcfApplyAddressAutocomplete,800);
+
+
+// ===== BearCrest Version 11.1.2: direct loan-address transfer and paste controls =====
+async function bcfWriteClipboard(text){
+  const value=String(text||'').trim();
+  if(!value)throw new Error('There is no property address to copy.');
+  if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value);return;}
+  const area=document.createElement('textarea');area.value=value;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.focus();area.select();
+  const ok=document.execCommand('copy');area.remove();if(!ok)throw new Error('Copy was blocked by the browser.');
+}
+async function bcfReadClipboard(){
+  if(!(navigator.clipboard&&window.isSecureContext))throw new Error('Use Ctrl+V or right-click Paste in the address box.');
+  return await navigator.clipboard.readText();
+}
+$('copyLoanAddressBtn')?.addEventListener('click',async()=>{
+  try{await bcfWriteClipboard($('propertyAddress').value);alert('Property address copied. Open the Deal Analyzer and paste it into the address field.');}
+  catch(e){alert(e.message);}
+});
+$('openLoanInAnalyzerBtn')?.addEventListener('click',()=>{
+  const address=bcfCleanAddressText($('propertyAddress').value);
+  if(!address)return alert('Enter or save the property address first.');
+  const loanId=$('loanId')?.value;
+  $('loanDialog')?.close();
+  document.querySelector('[data-view="deal-analyzer"]')?.click();
+  setTimeout(()=>{
+    if(loanId&&$('dealLoanSelect'))$('dealLoanSelect').value=loanId;
+    $('dealAddress').value=address;
+    $('dealAddress').dispatchEvent(new Event('input',{bubbles:true}));
+    $('dealAddress').focus();
+    $('dealAnalyzerStatus').textContent='Property address transferred from the loan application. Enter square footage, then analyze the deal.';
+  },80);
+});
+$('useSelectedLoanAddressBtn')?.addEventListener('click',()=>{
+  const loan=selectedDealPackageLoan();
+  if(!loan)return alert('Select an application or loan file first.');
+  $('dealAddress').value=bcfCleanAddressText(loan.propertyAddress||'');
+  $('dealSquareFootage').value=loan.squareFootage||loan.propertySquareFootage||loan.sqft||$('dealSquareFootage').value||'';
+  $('dealAddress').dispatchEvent(new Event('input',{bubbles:true}));
+  $('dealAddress').focus();
+  $('dealAnalyzerStatus').textContent='Address loaded from the selected loan. Confirm or enter the subject square footage.';
+});
+$('pasteDealAddressBtn')?.addEventListener('click',async()=>{
+  try{
+    const text=await bcfReadClipboard();
+    $('dealAddress').value=bcfCleanAddressText(text);
+    $('dealAddress').dispatchEvent(new Event('input',{bubbles:true}));
+    $('dealAddress').focus();
+  }catch(e){$('dealAddress').focus();alert(e.message);}
+});
+$('clearDealAddressBtn')?.addEventListener('click',()=>{$('dealAddress').value='';$('dealAddress').focus();});

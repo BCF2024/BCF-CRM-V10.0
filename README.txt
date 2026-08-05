@@ -1,3 +1,7 @@
+BearCrest CRM Version 11.1.2
+
+Added a clearly visible Subject Property Square Footage field and direct copy/paste/transfer controls between the loan application and Deal Analyzer.
+
 BEARCREST CRM VERSION 11.1 — AUTOMATED ARV & SUBMISSION UPDATE
 
 NEW IN VERSION 11.1

@@ -1,19 +1,25 @@
-BearCrest CRM Version 11.1.4
+BearCrest CRM Version 11.1.5
 
-FIXED IN VERSION 11.1.4
+NEW IN VERSION 11.1.5
+- Added a clear Deal Type selector in the Deal Analyzer: Purchase or Rehab / Refinance.
+- The selected type is pulled from the application when available, remains editable, and appears in the analysis and deal package.
+
+BearCrest CRM Version 11.1.5
+
+FIXED IN VERSION 11.1.5
 - Selecting or loading an application now automatically fills the Deal Analyzer with the property address, purchase price, rehab budget, square footage, ARV, and closing costs when available.
 - The Deal Analyzer also searches the imported Jotform application answers when the main CRM fields are blank.
 - All populated Deal Analyzer fields remain editable so figures can be corrected before running the analysis.
 - Sending a loan to the Deal Analyzer now transfers the full available application data, not only the address.
 
-BearCrest CRM Version 11.1.4
+BearCrest CRM Version 11.1.5
 
-FIXED IN VERSION 11.1.4
+FIXED IN VERSION 11.1.5
 - Corrected the Deal Analyzer error “input is not defined.”
 - The subject square footage is now passed correctly into the selected-comparable ARV calculation.
 - The Analyze Deal button now completes and resets normally after the analysis.
 
-BearCrest CRM Version 11.1.4
+BearCrest CRM Version 11.1.5
 
 Added a clearly visible Subject Property Square Footage field and direct copy/paste/transfer controls between the loan application and Deal Analyzer.
 

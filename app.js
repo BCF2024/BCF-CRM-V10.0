@@ -2272,10 +2272,25 @@ function refreshDealPackageLoanPicker(){
 function selectedDealPackageLoan(){
   return loans.find(l=>l.loanId===$("dealLoanSelect")?.value)||null;
 }
+function normalizedDealType(value){
+  const raw=String(value||"").toLowerCase();
+  if(raw.includes("rehab")||raw.includes("refi")||raw.includes("refinance")||raw.includes("cash out")||raw.includes("cash-out"))return "Rehab / Refinance";
+  return "Purchase";
+}
+function selectedDealType(){
+  return document.querySelector('input[name="dealType"]:checked')?.value||"Purchase";
+}
+function setDealType(value){
+  const normalized=normalizedDealType(value);
+  const radio=[...document.querySelectorAll('input[name="dealType"]')].find(x=>x.value===normalized);
+  if(radio)radio.checked=true;
+  return normalized;
+}
 function dealAnalyzerLoanValues(loan){
   const cleanNumber=value=>String(value||"").replace(/[^0-9.]/g,"");
   const answer=(needles)=>loanApplicationAnswer(loan,needles);
   return {
+    dealType:normalizedDealType(loan?.transactionType||loan?.program||answer(["transaction type","loan purpose","purpose of loan","purchase or refinance","purchase rehab refinance"])),
     address:String(loan?.propertyAddress||answer(["property address","subject property address","property location","address of property"])||"").trim(),
     purchasePrice:numericApplicationValue(loan,"purchasePrice",["purchase price","purchase amount","acquisition price","acquisition cost","contract price","property purchase price","purchase"]),
     rehabBudget:numericApplicationValue(loan,"rehabBudget",["rehab budget","rehab amount","renovation budget","repair budget","construction budget","scope of work amount","estimated repairs","repairs"]),
@@ -2288,6 +2303,7 @@ function loadLoanIntoDealAnalyzer(showAlert=true){
   const loan=selectedDealPackageLoan();
   if(!loan){if(showAlert)alert("Select an application or loan file first.");return false;}
   const values=dealAnalyzerLoanValues(loan);
+  setDealType(values.dealType);
   $("dealAddress").value=values.address;
   $("dealPurchasePrice").value=values.purchasePrice;
   $("dealRehabBudget").value=values.rehabBudget;
@@ -2300,12 +2316,13 @@ function loadLoanIntoDealAnalyzer(showAlert=true){
 function dealAnalysisSections(data,input){
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
   const arv=Number(input.arvOverride||0), analysisValue=arv||asIs;
+  const dealType=input.dealType||"Purchase";
   const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
   const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab;
   const comps=Array.isArray(data.comparables)?data.comparables:[];
   const rows=comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return `<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):""}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="7">No comparable sales were returned.</td></tr>';
   return `<h2 class="section-title">Property Analysis</h2><div class="package-metrics">
-    <div><small>Automated As-Is Value</small><b>${currency0(asIs)}</b></div><div><small>As-Is Range</small><b>${currency0(low)} – ${currency0(high)}</b></div>
+    <div><small>Deal Type</small><b>${esc(dealType)}</b></div><div><small>Automated As-Is Value</small><b>${currency0(asIs)}</b></div><div><small>As-Is Range</small><b>${currency0(low)} – ${currency0(high)}</b></div>
     <div><small>Renovated-Comp ARV</small><b>${arv?currency0(arv):"Not entered"}</b></div><div><small>Total Project Cost</small><b>${currency0(allIn)}</b></div>
     <div><small>Estimated Net Spread</small><b>${currency0(spread)}</b></div><div><small>Estimated ROI</small><b>${roi.toFixed(1)}%</b></div>
     <div><small>70% Rule Max Purchase</small><b>${currency0(max70)}</b></div><div><small>Cost / Analysis Value</small><b>${analysisValue?(allIn/analysisValue*100).toFixed(1):"0.0"}%</b></div>
@@ -2355,6 +2372,7 @@ function renderDealAnalysis(data,input,selectedIndexes){
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
   const manualArv=Number(input.arvOverride||0), automatedArv=Math.round(calc.suggested/1000)*1000, analysisValue=manualArv||automatedArv||asIs;
   if(linkedLoan){linkedLoan.asIsValue=String(asIs||"");linkedLoan.arv=String(analysisValue||"");if(calc.subjectSqft)linkedLoan.squareFootage=String(calc.subjectSqft);save();}
+  const dealType=input.dealType||"Purchase";
   const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
   const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab, grade=dealGrade(spread,roi,allIn,analysisValue);
   const mismatch=(purchase>0&&high>0&&purchase>high*1.75)||(asIs>0&&purchase>0&&asIs<purchase*.4);
@@ -2365,6 +2383,7 @@ function renderDealAnalysis(data,input,selectedIndexes){
   if(!comps.length)warnings.push('No comparable sales were returned.');
   $("dealAnalyzerResults").classList.remove("hidden");
   $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid">
+    <div class="deal-metric"><small>Deal Type</small><strong>${esc(dealType)}</strong></div>
     <div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div>
     <div class="deal-metric"><small>Automated As-Is Range</small><strong>${currency0(low)} – ${currency0(high)}</strong></div>
     <div class="deal-metric"><small>Suggested ARV from Selected Comps</small><strong>${currency0(automatedArv)}</strong></div>
@@ -2384,7 +2403,7 @@ function renderDealAnalysis(data,input,selectedIndexes){
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
-  const input={address,squareFootage:$("dealSquareFootage").value,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
+  const input={dealType:selectedDealType(),address,squareFootage:$("dealSquareFootage").value,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
   try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
@@ -2394,7 +2413,7 @@ $("createDealPackageBtn")?.addEventListener("click",createDealPackagePdf);
 $("dealLoanSelect")?.addEventListener("focus",refreshDealPackageLoanPicker);
 $("dealLoanSelect")?.addEventListener("change",()=>loadLoanIntoDealAnalyzer(false));
 refreshDealPackageLoanPicker();
-$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;["dealAddress","dealSquareFootage","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;setDealType("Purchase");["dealAddress","dealSquareFootage","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
 
 
 
@@ -2581,7 +2600,7 @@ document.addEventListener("focusin",e=>{if(["propertyAddress","dealAddress","mat
 setTimeout(bcfApplyAddressAutocomplete,800);
 
 
-// ===== BearCrest Version 11.1.4: Deal Analyzer undefined-input fix =====
+// ===== BearCrest Version 11.1.5: Deal Analyzer undefined-input fix =====
 async function bcfWriteClipboard(text){
   const value=String(text||'').trim();
   if(!value)throw new Error('There is no property address to copy.');

@@ -1,4 +1,11 @@
-BearCrest CRM Version 11.1.2
+BearCrest CRM Version 11.1.3
+
+FIXED IN VERSION 11.1.3
+- Corrected the Deal Analyzer error “input is not defined.”
+- The subject square footage is now passed correctly into the selected-comparable ARV calculation.
+- The Analyze Deal button now completes and resets normally after the analysis.
+
+BearCrest CRM Version 11.1.3
 
 Added a clearly visible Subject Property Square Footage field and direct copy/paste/transfer controls between the loan application and Deal Analyzer.
 

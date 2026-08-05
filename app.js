@@ -2313,7 +2313,7 @@ function createDealPackagePdf(){
 }
 function bcfCompPrice(c){return Number(c.price||c.lastSalePrice||0)}
 function bcfCompSqft(c){return Number(c.squareFootage||0)}
-function bcfSuggestedArv(data,selectedIndexes){
+function bcfSuggestedArv(data,selectedIndexes,input={}){
   const comps=Array.isArray(data.comparables)?data.comparables:[];
   const chosen=comps.filter((_,i)=>selectedIndexes.includes(i));
   const subjectSqft=Number(input?.squareFootage||data.squareFootage||data.property?.squareFootage||0);
@@ -2335,7 +2335,7 @@ function renderDealAnalysis(data,input,selectedIndexes){
   const comps=Array.isArray(data.comparables)?data.comparables:[];
   if(!Array.isArray(selectedIndexes))selectedIndexes=comps.map((_,i)=>i);
   lastDealAnalysis={data,input,selectedIndexes,generatedAt:new Date().toISOString()};
-  const calc=bcfSuggestedArv(data,selectedIndexes);
+  const calc=bcfSuggestedArv(data,selectedIndexes,input);
   const linkedLoan=selectedDealPackageLoan();
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
   const manualArv=Number(input.arvOverride||0), automatedArv=Math.round(calc.suggested/1000)*1000, analysisValue=manualArv||automatedArv||asIs;
@@ -2565,7 +2565,7 @@ document.addEventListener("focusin",e=>{if(["propertyAddress","dealAddress","mat
 setTimeout(bcfApplyAddressAutocomplete,800);
 
 
-// ===== BearCrest Version 11.1.2: direct loan-address transfer and paste controls =====
+// ===== BearCrest Version 11.1.3: Deal Analyzer undefined-input fix =====
 async function bcfWriteClipboard(text){
   const value=String(text||'').trim();
   if(!value)throw new Error('There is no property address to copy.');

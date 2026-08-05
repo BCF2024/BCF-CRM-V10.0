@@ -2272,15 +2272,30 @@ function refreshDealPackageLoanPicker(){
 function selectedDealPackageLoan(){
   return loans.find(l=>l.loanId===$("dealLoanSelect")?.value)||null;
 }
-function loadLoanIntoDealAnalyzer(){
+function dealAnalyzerLoanValues(loan){
+  const cleanNumber=value=>String(value||"").replace(/[^0-9.]/g,"");
+  const answer=(needles)=>loanApplicationAnswer(loan,needles);
+  return {
+    address:String(loan?.propertyAddress||answer(["property address","subject property address","property location","address of property"])||"").trim(),
+    purchasePrice:numericApplicationValue(loan,"purchasePrice",["purchase price","purchase amount","acquisition price","acquisition cost","contract price","property purchase price","purchase"]),
+    rehabBudget:numericApplicationValue(loan,"rehabBudget",["rehab budget","rehab amount","renovation budget","repair budget","construction budget","scope of work amount","estimated repairs","repairs"]),
+    squareFootage:cleanNumber(loan?.squareFootage||loan?.propertySquareFootage||loan?.sqft||answer(["square footage","property square footage","subject square footage","sq ft","sqft","living area"])),
+    arv:numericApplicationValue(loan,"arv",["estimated arv","after repair value","after repaired value","arv","future value"]),
+    closingCosts:numericApplicationValue(loan,"closingCosts",["estimated closing costs","closing costs"])
+  };
+}
+function loadLoanIntoDealAnalyzer(showAlert=true){
   const loan=selectedDealPackageLoan();
-  if(!loan)return alert("Select an application or loan file first.");
-  $("dealAddress").value=loan.propertyAddress||"";
-  $("dealPurchasePrice").value=loan.purchasePrice||"";
-  $("dealRehabBudget").value=loan.rehabBudget||"";
-  $("dealSquareFootage").value=loan.squareFootage||loan.propertySquareFootage||loan.sqft||"";
-  $("dealArvOverride").value=loan.arv||"";
-  $("dealAnalyzerStatus").textContent=`Loaded ${loan.loanNumber||loan.borrowerName||"application"}. Run Analyze Deal to pull comps.`;
+  if(!loan){if(showAlert)alert("Select an application or loan file first.");return false;}
+  const values=dealAnalyzerLoanValues(loan);
+  $("dealAddress").value=values.address;
+  $("dealPurchasePrice").value=values.purchasePrice;
+  $("dealRehabBudget").value=values.rehabBudget;
+  $("dealSquareFootage").value=values.squareFootage;
+  $("dealArvOverride").value=values.arv;
+  if(values.closingCosts)$("dealClosingCosts").value=values.closingCosts;
+  $("dealAnalyzerStatus").textContent=`Loaded available application data for ${loan.loanNumber||loan.borrowerName||"this loan"}. Review or correct any field before analyzing.`;
+  return true;
 }
 function dealAnalysisSections(data,input){
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
@@ -2377,6 +2392,7 @@ $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
 $("loadDealLoanBtn")?.addEventListener("click",loadLoanIntoDealAnalyzer);
 $("createDealPackageBtn")?.addEventListener("click",createDealPackagePdf);
 $("dealLoanSelect")?.addEventListener("focus",refreshDealPackageLoanPicker);
+$("dealLoanSelect")?.addEventListener("change",()=>loadLoanIntoDealAnalyzer(false));
 refreshDealPackageLoanPicker();
 $("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;["dealAddress","dealSquareFootage","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
 
@@ -2565,7 +2581,7 @@ document.addEventListener("focusin",e=>{if(["propertyAddress","dealAddress","mat
 setTimeout(bcfApplyAddressAutocomplete,800);
 
 
-// ===== BearCrest Version 11.1.3: Deal Analyzer undefined-input fix =====
+// ===== BearCrest Version 11.1.4: Deal Analyzer undefined-input fix =====
 async function bcfWriteClipboard(text){
   const value=String(text||'').trim();
   if(!value)throw new Error('There is no property address to copy.');
@@ -2589,20 +2605,23 @@ $('openLoanInAnalyzerBtn')?.addEventListener('click',()=>{
   document.querySelector('[data-view="deal-analyzer"]')?.click();
   setTimeout(()=>{
     if(loanId&&$('dealLoanSelect'))$('dealLoanSelect').value=loanId;
-    $('dealAddress').value=address;
-    $('dealAddress').dispatchEvent(new Event('input',{bubbles:true}));
+    if(loanId&&$('dealLoanSelect'))$('dealLoanSelect').value=loanId;
+    if(!loadLoanIntoDealAnalyzer(false)){
+      $('dealAddress').value=address;
+      $('dealAddress').dispatchEvent(new Event('input',{bubbles:true}));
+    }
     $('dealAddress').focus();
-    $('dealAnalyzerStatus').textContent='Property address transferred from the loan application. Enter square footage, then analyze the deal.';
+    $('dealAnalyzerStatus').textContent='Application data transferred to the Deal Analyzer. Review or correct the figures before analyzing.';
   },80);
 });
 $('useSelectedLoanAddressBtn')?.addEventListener('click',()=>{
   const loan=selectedDealPackageLoan();
   if(!loan)return alert('Select an application or loan file first.');
-  $('dealAddress').value=bcfCleanAddressText(loan.propertyAddress||'');
-  $('dealSquareFootage').value=loan.squareFootage||loan.propertySquareFootage||loan.sqft||$('dealSquareFootage').value||'';
+  loadLoanIntoDealAnalyzer(false);
+  $('dealAddress').value=bcfCleanAddressText($('dealAddress').value);
   $('dealAddress').dispatchEvent(new Event('input',{bubbles:true}));
   $('dealAddress').focus();
-  $('dealAnalyzerStatus').textContent='Address loaded from the selected loan. Confirm or enter the subject square footage.';
+  $('dealAnalyzerStatus').textContent='Application data loaded. Review or correct the address, square footage, purchase price, rehab budget, and ARV before analyzing.';
 });
 $('pasteDealAddressBtn')?.addEventListener('click',async()=>{
   try{

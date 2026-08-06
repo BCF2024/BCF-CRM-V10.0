@@ -269,7 +269,7 @@ $("templateBtn").onclick=()=>{const headers=["Loan Number","Date Received","Borr
 
 render();
 
-// ----- BearCrest Google Drive + Jotform connector (Version 2.5) -----
+// ----- BearCrest Google Drive + Google Forms connector (Version 13.0.0) -----
 const DEFAULT_FORM_URL=ADMIN_DEFAULTS.googleFormUrl||"";
 function getCloudSettings(){const a=getAdminSettings();return {endpoint:validSharedAppsScriptUrl()?SHARED_APPS_SCRIPT_URL:a.endpoint,googleFormSheetId:a.googleFormSheetId||"",googleFormUrl:a.googleFormUrl||""};}
 function setCloudSettings(v){setAdminSettings(v);}
@@ -362,7 +362,7 @@ oldUploadHandler.addEventListener("change",async e=>{
   }catch(err){alert(err.message);}finally{e.target.value="";}
 },true);
 
-function formatJotformAddress(value){
+function formatLegacyFormAddress(value){
   if(value===null||value===undefined)return "";
   if(typeof value!=="object"||Array.isArray(value))return String(value).trim();
   const pick=(...keys)=>keys.map(key=>value[key]).find(item=>String(item||"").trim())||"";
@@ -382,7 +382,7 @@ function answerValue(answers,needles){
   for(const a of Object.values(answers||{})){
     const q=String(a.text||a.name||"").toLowerCase();
     if(!needles.some(n=>q.includes(n)))continue;
-    if(q.includes("address"))return formatJotformAddress(a.answer);
+    if(q.includes("address"))return formatLegacyFormAddress(a.answer);
     return Array.isArray(a.answer)?a.answer.join(", "):(typeof a.answer==="object"?Object.values(a.answer||{}).join(" "):String(a.answer||""));
   }
   return "";
@@ -472,7 +472,7 @@ $("syncApplicationsBtn").onclick=async()=>{
 };
 
 function normalizeGoogleFormApplication(submission){
-  return Object.values(submission?.answers||{}).map(a=>({order:Number(a.order||0),question:String(a.text||a.name||"Question"),answer:formatJotformAnswer(a.answer)})).filter(x=>x.answer!=="").sort((a,b)=>a.order-b.order);
+  return Object.values(submission?.answers||{}).map(a=>({order:Number(a.order||0),question:String(a.text||a.name||"Question"),answer:formatLegacyFormAnswer(a.answer)})).filter(x=>x.answer!=="").sort((a,b)=>a.order-b.order);
 }
 
 // refresh Drive controls whenever a loan dialog is opened
@@ -2184,19 +2184,19 @@ renderLoansPage();renderCommunicationCenter();
 })();
 
 
-// ===== BearCrest Deal Analyzer v12.0 + CRM/Google Forms Application PDF =====
+// ===== BearCrest Deal Analyzer v13.0.0 + CRM/Google Forms Application PDF =====
 function normalizeGoogleFormApplication(submission){
   const answers=submission?.answers||{};
   return Object.values(answers).map(a=>({
     order:Number(a.order||0),
     question:String(a.text||a.name||"Question"),
-    answer:String(a.text||a.name||"").toLowerCase().includes("address")?formatJotformAddress(a.answer):formatJotformAnswer(a.answer)
+    answer:String(a.text||a.name||"").toLowerCase().includes("address")?formatLegacyFormAddress(a.answer):formatLegacyFormAnswer(a.answer)
   })).filter(x=>x.answer!=="").sort((a,b)=>a.order-b.order);
 }
-function formatJotformAnswer(value){
+function formatLegacyFormAnswer(value){
   if(value===null||value===undefined)return "";
-  if(Array.isArray(value))return value.map(formatJotformAnswer).filter(Boolean).join(", ");
-  if(typeof value==="object")return Object.values(value).map(formatJotformAnswer).filter(Boolean).join(" ");
+  if(Array.isArray(value))return value.map(formatLegacyFormAnswer).filter(Boolean).join(", ");
+  if(typeof value==="object")return Object.values(value).map(formatLegacyFormAnswer).filter(Boolean).join(" ");
   return String(value).trim();
 }
 function currentLoanRecord(){return loans.find(x=>x.loanId===$("loanId")?.value);}

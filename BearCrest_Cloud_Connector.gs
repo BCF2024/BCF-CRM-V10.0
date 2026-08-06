@@ -16,7 +16,7 @@ const STARTER_LENDER_TAGS = {
 };
 
 function doGet(){
-  return json_({ok:true,message:'BearCrest Cloud Connector Version 5.0 is running.'});
+  return json_({ok:true,message:'BearCrest Cloud Connector Version 13.0.0 is running.'});
 }
 
 function doPost(e){
@@ -30,7 +30,6 @@ function doPost(e){
     if(action==='listFiles')return json_(listFiles_(payload));
     if(action==='setupGoogleForm')return json_(setupGoogleForm_(payload));
     if(action==='syncGoogleForms')return json_(syncGoogleForms_(payload));
-    if(action==='syncJotform')return json_(syncJotform_(payload));
     if(action==='createApplicationPdf')return json_(createApplicationPdf_(payload));
     if(action==='rentcastAnalyze')return json_(rentcastAnalyze_(payload));
     if(action==='sendEmail')return json_(sendEmail_(payload));
@@ -139,17 +138,7 @@ function listFiles_(p){
   return {ok:true,files:files};
 }
 
-function syncJotform_(p){
-  const key=PropertiesService.getScriptProperties().getProperty('JOTFORM_API_KEY');
-  if(!key)throw new Error('Add JOTFORM_API_KEY in Apps Script Project Settings > Script Properties.');
 
-  const url=`https://api.jotform.com/form/${encodeURIComponent(p.formId)}/submissions?apiKey=${encodeURIComponent(key)}&limit=100&orderby=created_at`;
-  const res=UrlFetchApp.fetch(url,{muteHttpExceptions:true});
-  const data=JSON.parse(res.getContentText());
-
-  if(data.responseCode!==200)throw new Error(data.message||'Jotform could not be read.');
-  return {ok:true,submissions:data.content||[]};
-}
 
 
 function setupGoogleForm_(){
@@ -638,7 +627,7 @@ function createApplicationPdf_(p){
     body.appendParagraph(String(item.answer||'')).setFontSize(11);
     body.appendHorizontalRule();
   });
-  body.appendParagraph('Application information reproduced from the applicant’s Jotform submission and retained in the BearCrest CRM loan file.').setFontSize(8).setForegroundColor('#66736d');
+  body.appendParagraph('Application information reproduced from the applicant’s Google Form response and retained in the BearCrest CRM loan file.').setFontSize(8).setForegroundColor('#66736d');
   doc.saveAndClose();
   const source=DriveApp.getFileById(doc.getId());
   const name=loanNumber+'_'+borrower.replace(/\s+/g,'-')+'_Application.pdf';

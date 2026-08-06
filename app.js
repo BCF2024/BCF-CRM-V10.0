@@ -3,7 +3,7 @@ const OLD_STORAGE_KEY = "bearcrest_loans_v4_1_none";
 const $ = id => document.getElementById(id);
 const STATUSES = ["New Lead","Reviewing","Submitted","Approved","Closing","Closed","Dead","Archived"];
 const DOCS = ["Government-issued ID","Bank/asset statements","Entity documents","Purchase contract","Insurance information","Property photos","Scope of work / budget","Experience worksheet","Lease / rent information","Payoff statement"];
-const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","transactionType","propertyAddress","loanAmount","purchasePrice","rehabBudget","asIsValue","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","processingFee","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural","assignedTo","internalNotes","lenderNotes"];
+const fields = ["loanId","loanNumber","dateReceived","borrowerName","phone","email","entityName","program","transactionType","propertyAddress","squareFootage","loanAmount","purchasePrice","rehabBudget","asIsValue","arv","status","lender","finalLender","nextFollowUp","targetClosing","dateSubmitted","dateApproved","dateFunded","interestRate","points","processingFee","loanTerm","leverage","exitStrategy","termExpiration","termConditions","declineReason","missingDocs","notes","fico","experience","liquidity","propertyType","rural","assignedTo","internalNotes","lenderNotes"];
 let showBoard = false;
 let todayOnly = false;
 let archiveOnly = false;
@@ -363,8 +363,30 @@ oldUploadHandler.addEventListener("change",async e=>{
   }catch(err){alert(err.message);}finally{e.target.value="";}
 },true);
 
+function formatJotformAddress(value){
+  if(value===null||value===undefined)return "";
+  if(typeof value!=="object"||Array.isArray(value))return String(value).trim();
+  const pick=(...keys)=>keys.map(key=>value[key]).find(item=>String(item||"").trim())||"";
+  const line1=pick("addr_line1","address_line_1","street","streetAddress","address");
+  const line2=pick("addr_line2","address_line_2","unit","suite","apartment");
+  const city=pick("city");
+  const state=pick("state","province");
+  const zip=pick("postal","postalCode","zip","zipCode");
+  const country=pick("country");
+  const street=[line1,line2].filter(Boolean).join(" ");
+  const stateZip=[state,zip].filter(Boolean).join(" ");
+  const formatted=[street,city,stateZip,country&&String(country).toUpperCase()!=="US"?country:""]
+    .filter(Boolean).join(", ");
+  return formatted||Object.values(value).map(item=>String(item||"").trim()).filter(Boolean).join(", ");
+}
 function answerValue(answers,needles){
-  for(const a of Object.values(answers||{})){const q=String(a.text||a.name||"").toLowerCase();if(needles.some(n=>q.includes(n)))return Array.isArray(a.answer)?a.answer.join(", "):(typeof a.answer==="object"?Object.values(a.answer||{}).join(" "):String(a.answer||""));}return "";
+  for(const a of Object.values(answers||{})){
+    const q=String(a.text||a.name||"").toLowerCase();
+    if(!needles.some(n=>q.includes(n)))continue;
+    if(q.includes("address"))return formatJotformAddress(a.answer);
+    return Array.isArray(a.answer)?a.answer.join(", "):(typeof a.answer==="object"?Object.values(a.answer||{}).join(" "):String(a.answer||""));
+  }
+  return "";
 }
 function getSyncMeta(){
   try{return JSON.parse(localStorage.getItem(SYNC_META_KEY)||"{}");}
@@ -430,11 +452,13 @@ $("syncApplicationsBtn").onclick=async()=>{
           phone:answerValue(answers,["phone"]),
           email:answerValue(answers,["email"]),
           entityName:answerValue(answers,["entity name","borrowing entity"]),
-          program:answerValue(answers,["loan program"])||"Other",
-          propertyAddress:answerValue(answers,["property address","full property"]),
-          loanAmount:answerValue(answers,["requested loan amount"]).replace(/[^0-9.]/g,""),
-          purchasePrice:answerValue(answers,["purchase price"]).replace(/[^0-9.]/g,""),
-          rehabBudget:answerValue(answers,["rehab budget","scope of work"]).replace(/[^0-9.]/g,""),
+          program:answerValue(answers,["loan program","loan type","financing type"])||"Other",
+          transactionType:answerValue(answers,["transaction type","loan purpose","purchase or refinance"])||"Purchase",
+          propertyAddress:answerValue(answers,["property address","subject property address","full property","address of property"]),
+          squareFootage:answerValue(answers,["property square footage","subject square footage","square footage","living area","sq ft","sqft"]).replace(/[^0-9.]/g,""),
+          loanAmount:answerValue(answers,["requested loan amount","loan amount requested","amount requested","loan request","loan amount"]).replace(/[^0-9.]/g,""),
+          purchasePrice:answerValue(answers,["purchase price","purchase amount","acquisition price","contract price"]).replace(/[^0-9.]/g,""),
+          rehabBudget:answerValue(answers,["rehab budget","rehab amount","renovation budget","repair budget","scope of work"]).replace(/[^0-9.]/g,""),
           asIsValue:answerValue(answers,["as-is value","as is value","current value","present value"]).replace(/[^0-9.]/g,""),
           arv:answerValue(answers,["estimated arv"]).replace(/[^0-9.]/g,""),
           fico:answerValue(answers,["credit score","fico"]).replace(/[^0-9.]/g,""),
@@ -1188,6 +1212,8 @@ function v5ShowView(name){
     $("dealAnalyzerView")?.classList.add("active-view");
     document.querySelector('[data-view="deal-analyzer"]')?.classList.add("active");
     $("viewSubtitle").textContent="Automated property valuation and deal screening";
+    refreshDealPackageLoanPicker();
+    setTimeout(bcfApplyAddressAutocomplete,0);
     return;
   }
 
@@ -2193,7 +2219,7 @@ function normalizeJotformApplication(submission){
   return Object.values(answers).map(a=>({
     order:Number(a.order||0),
     question:String(a.text||a.name||"Question"),
-    answer:formatJotformAnswer(a.answer)
+    answer:String(a.text||a.name||"").toLowerCase().includes("address")?formatJotformAddress(a.answer):formatJotformAnswer(a.answer)
   })).filter(x=>x.answer!=="").sort((a,b)=>a.order-b.order);
 }
 function formatJotformAnswer(value){
@@ -2208,7 +2234,7 @@ function applicationFieldRows(loan){
   return [
     ["Loan Number",loan.loanNumber],["Date Received",loan.dateReceived],["Borrower Name",loan.borrowerName],
     ["Phone",loan.phone],["Email",loan.email],["Borrowing Entity",loan.entityName],["Loan Program",loan.program],["Transaction Type",loan.transactionType||"Purchase"],
-    ["Property Address",loan.propertyAddress],["Loan Amount",money(loan.loanAmount)],["Purchase Price",money(loan.purchasePrice)],
+    ["Property Address",loan.propertyAddress],["Subject Square Footage",loan.squareFootage],["Loan Amount",money(loan.loanAmount)],["Purchase Price",money(loan.purchasePrice)],
     ["Rehab Budget",money(loan.rehabBudget)],["As-Is Value",money(loan.asIsValue)],["Estimated ARV",money(loan.arv)],["Target Closing Date",loan.targetClosing],
     ["Exit Strategy",loan.exitStrategy],["Interest Rate",loan.interestRate],["Origination Points",loan.points],["BearCrest Processing Fee",money(loan.processingFee)],
     ["Loan Term",loan.loanTerm],["LTV / LTC",loan.leverage],["Status",loan.status],["Assigned Lender",loan.lender],
@@ -2292,6 +2318,7 @@ function dealAnalyzerLoanValues(loan){
   return {
     dealType:normalizedDealType(loan?.transactionType||loan?.program||answer(["transaction type","loan purpose","purpose of loan","purchase or refinance","purchase rehab refinance"])),
     address:String(loan?.propertyAddress||answer(["property address","subject property address","property location","address of property"])||"").trim(),
+    loanAmount:numericApplicationValue(loan,"loanAmount",["requested loan amount","loan amount requested","amount requested","desired loan amount","loan request","loan amount"]),
     purchasePrice:numericApplicationValue(loan,"purchasePrice",["purchase price","purchase amount","acquisition price","acquisition cost","contract price","property purchase price","purchase"]),
     rehabBudget:numericApplicationValue(loan,"rehabBudget",["rehab budget","rehab amount","renovation budget","repair budget","construction budget","scope of work amount","estimated repairs","repairs"]),
     squareFootage:cleanNumber(loan?.squareFootage||loan?.propertySquareFootage||loan?.sqft||answer(["square footage","property square footage","subject square footage","sq ft","sqft","living area"])),
@@ -2305,6 +2332,7 @@ function loadLoanIntoDealAnalyzer(showAlert=true){
   const values=dealAnalyzerLoanValues(loan);
   setDealType(values.dealType);
   $("dealAddress").value=values.address;
+  $("dealLoanAmount").value=values.loanAmount;
   $("dealPurchasePrice").value=values.purchasePrice;
   $("dealRehabBudget").value=values.rehabBudget;
   $("dealSquareFootage").value=values.squareFootage;
@@ -2317,12 +2345,12 @@ function dealAnalysisSections(data,input){
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
   const arv=Number(input.arvOverride||0), analysisValue=arv||asIs;
   const dealType=input.dealType||"Purchase";
-  const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
+  const requestedLoan=Number(input.loanAmount||0), purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
   const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab;
   const comps=Array.isArray(data.comparables)?data.comparables:[];
   const rows=comps.map(c=>{const price=Number(c.price||c.lastSalePrice||0),sf=Number(c.squareFootage||0);return `<tr><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):""}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="7">No comparable sales were returned.</td></tr>';
   return `<h2 class="section-title">Property Analysis</h2><div class="package-metrics">
-    <div><small>Deal Type</small><b>${esc(dealType)}</b></div><div><small>Automated As-Is Value</small><b>${currency0(asIs)}</b></div><div><small>As-Is Range</small><b>${currency0(low)} – ${currency0(high)}</b></div>
+    <div><small>Deal Type</small><b>${esc(dealType)}</b></div><div><small>Requested Loan Amount</small><b>${requestedLoan?currency0(requestedLoan):"Not entered"}</b></div><div><small>Automated As-Is Value</small><b>${currency0(asIs)}</b></div><div><small>As-Is Range</small><b>${currency0(low)} – ${currency0(high)}</b></div>
     <div><small>Renovated-Comp ARV</small><b>${arv?currency0(arv):"Not entered"}</b></div><div><small>Total Project Cost</small><b>${currency0(allIn)}</b></div>
     <div><small>Estimated Net Spread</small><b>${currency0(spread)}</b></div><div><small>Estimated ROI</small><b>${roi.toFixed(1)}%</b></div>
     <div><small>70% Rule Max Purchase</small><b>${currency0(max70)}</b></div><div><small>Cost / Analysis Value</small><b>${analysisValue?(allIn/analysisValue*100).toFixed(1):"0.0"}%</b></div>
@@ -2373,7 +2401,7 @@ function renderDealAnalysis(data,input,selectedIndexes){
   const manualArv=Number(input.arvOverride||0), automatedArv=Math.round(calc.suggested/1000)*1000, analysisValue=manualArv||automatedArv||asIs;
   if(linkedLoan){linkedLoan.asIsValue=String(asIs||"");linkedLoan.arv=String(analysisValue||"");if(calc.subjectSqft)linkedLoan.squareFootage=String(calc.subjectSqft);save();}
   const dealType=input.dealType||"Purchase";
-  const purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
+  const requestedLoan=Number(input.loanAmount||0), purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
   const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue-allIn-selling, roi=allIn?spread/allIn*100:0, max70=analysisValue*.70-rehab, grade=dealGrade(spread,roi,allIn,analysisValue);
   const mismatch=(purchase>0&&high>0&&purchase>high*1.75)||(asIs>0&&purchase>0&&asIs<purchase*.4);
   const warnings=[];
@@ -2384,6 +2412,9 @@ function renderDealAnalysis(data,input,selectedIndexes){
   $("dealAnalyzerResults").classList.remove("hidden");
   $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid">
     <div class="deal-metric"><small>Deal Type</small><strong>${esc(dealType)}</strong></div>
+    <div class="deal-metric"><small>Requested Loan Amount</small><strong>${requestedLoan?currency0(requestedLoan):'—'}</strong></div>
+    <div class="deal-metric"><small>Requested LTC</small><strong>${requestedLoan&&allIn?(requestedLoan/allIn*100).toFixed(1)+'%':'—'}</strong></div>
+    <div class="deal-metric"><small>Requested LTARV</small><strong>${requestedLoan&&analysisValue?(requestedLoan/analysisValue*100).toFixed(1)+'%':'—'}</strong></div>
     <div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div>
     <div class="deal-metric"><small>Automated As-Is Range</small><strong>${currency0(low)} – ${currency0(high)}</strong></div>
     <div class="deal-metric"><small>Suggested ARV from Selected Comps</small><strong>${currency0(automatedArv)}</strong></div>
@@ -2403,7 +2434,7 @@ function renderDealAnalysis(data,input,selectedIndexes){
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
-  const input={dealType:selectedDealType(),address,squareFootage:$("dealSquareFootage").value,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
+  const input={dealType:selectedDealType(),address,squareFootage:$("dealSquareFootage").value,loanAmount:$("dealLoanAmount").value,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
   try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
@@ -2413,7 +2444,7 @@ $("createDealPackageBtn")?.addEventListener("click",createDealPackagePdf);
 $("dealLoanSelect")?.addEventListener("focus",refreshDealPackageLoanPicker);
 $("dealLoanSelect")?.addEventListener("change",()=>loadLoanIntoDealAnalyzer(false));
 refreshDealPackageLoanPicker();
-$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;setDealType("Purchase");["dealAddress","dealSquareFootage","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;setDealType("Purchase");["dealAddress","dealSquareFootage","dealLoanAmount","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
 
 
 
@@ -2569,34 +2600,168 @@ function bcfCleanAddressText(value){
   el.addEventListener('drop',()=>setTimeout(()=>{el.value=bcfCleanAddressText(el.value);el.dispatchEvent(new Event('input',{bubbles:true}));},0));
 });
 
-// ===== BearCrest Version 11.1: Smart Address Completion =====
+// ===== BearCrest Version 11.1.6: Current Google address autocomplete with legacy fallback =====
+const BCF_ADDRESS_INPUT_IDS=["propertyAddress","dealAddress","matchAddress","contactAddress"];
 let bcfPlacesPromise=null;
+function bcfAddressHelp(message,state=""){
+  const help=$("dealAddressHelp");
+  if(!help)return;
+  help.textContent=message;
+  help.dataset.state=state;
+}
 function bcfLoadGooglePlaces(){
   const a=getAdminSettings();
-  if(a.addressAutocompleteEnabled==="off"||!a.googlePlacesApiKey)return Promise.resolve(false);
-  if(window.google?.maps?.places)return Promise.resolve(true);
+  if(a.addressAutocompleteEnabled==="off"){
+    bcfAddressHelp("Address suggestions are turned off in Settings.","off");
+    return Promise.resolve(false);
+  }
+  if(!a.googlePlacesApiKey){
+    bcfAddressHelp("Address suggestions need the Google Maps API key saved in Settings.","setup");
+    return Promise.resolve(false);
+  }
+  if(window.google?.maps?.importLibrary||window.google?.maps?.places)return Promise.resolve(true);
   if(bcfPlacesPromise)return bcfPlacesPromise;
   bcfPlacesPromise=new Promise((resolve,reject)=>{
     const cb="bcfPlacesReady"+Date.now();
-    window[cb]=()=>{delete window[cb];resolve(true);};
+    let settled=false;
+    const finish=(ok,error)=>{
+      if(settled)return;
+      settled=true;
+      delete window[cb];
+      if(ok)resolve(true);else reject(error||new Error("Address service could not load."));
+    };
+    window[cb]=()=>finish(true);
     const sc=document.createElement("script");
-    sc.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(a.googlePlacesApiKey)}&libraries=places&callback=${cb}`;
-    sc.async=true;sc.defer=true;sc.onerror=()=>reject(new Error("Address service could not load."));document.head.appendChild(sc);
-  });
+    sc.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(a.googlePlacesApiKey)}&libraries=places&v=weekly&loading=async&callback=${cb}`;
+    sc.async=true;
+    sc.defer=true;
+    sc.onerror=()=>finish(false,new Error("Address service could not load."));
+    document.head.appendChild(sc);
+    setTimeout(()=>finish(false,new Error("Address service timed out.")),15000);
+  }).catch(error=>{bcfPlacesPromise=null;throw error;});
   return bcfPlacesPromise;
 }
-function bcfApplyAddressAutocomplete(){
-  bcfLoadGooglePlaces().then(ok=>{
-    if(!ok||!window.google?.maps?.places)return;
-    ["propertyAddress","dealAddress","matchAddress","contactAddress"].forEach(id=>{
-      const el=$(id);if(!el||el.dataset.placesReady)return;
-      const ac=new google.maps.places.Autocomplete(el,{types:["address"],componentRestrictions:{country:"us"},fields:["formatted_address","address_components","geometry"]});
-      el.dataset.placesReady="1";
-      ac.addListener("place_changed",()=>{const place=ac.getPlace();if(place?.formatted_address)el.value=place.formatted_address;});
-    });
-  }).catch(()=>{});
+function bcfAddressSuggestionBox(el){
+  let box=el.parentElement?.querySelector(".bcf-address-suggestions");
+  if(box)return box;
+  if(el.parentElement)el.parentElement.style.position="relative";
+  box=document.createElement("div");
+  box.className="bcf-address-suggestions hidden";
+  box.setAttribute("role","listbox");
+  box.setAttribute("aria-label","Suggested property addresses");
+  el.parentElement?.appendChild(box);
+  return box;
 }
-document.addEventListener("focusin",e=>{if(["propertyAddress","dealAddress","matchAddress","contactAddress"].includes(e.target?.id))bcfApplyAddressAutocomplete();});
+function bcfHideAddressSuggestions(el){
+  const box=el.parentElement?.querySelector(".bcf-address-suggestions");
+  if(box){box.classList.add("hidden");box.replaceChildren();}
+}
+async function bcfAttachModernAddressAutocomplete(el){
+  if(el.dataset.placesReady)return true;
+  if(!window.google?.maps?.importLibrary)return false;
+  const places=await google.maps.importLibrary("places");
+  const AutocompleteSuggestion=places.AutocompleteSuggestion||google.maps.places?.AutocompleteSuggestion;
+  const AutocompleteSessionToken=places.AutocompleteSessionToken||google.maps.places?.AutocompleteSessionToken;
+  if(!AutocompleteSuggestion||!AutocompleteSessionToken)return false;
+  const state={timer:null,requestId:0,activeIndex:-1,items:[],ignoreNextInput:false,disabled:false,token:new AutocompleteSessionToken()};
+  const box=bcfAddressSuggestionBox(el);
+  const choose=async prediction=>{
+    let address=prediction?.text?.toString?.()||prediction?.text?.text||"";
+    try{
+      const place=prediction.toPlace();
+      await place.fetchFields({fields:["formattedAddress"]});
+      address=place.formattedAddress||address;
+    }catch{}
+    if(address){state.ignoreNextInput=true;el.value=address;el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}));}
+    state.token=new AutocompleteSessionToken();
+    bcfHideAddressSuggestions(el);
+    bcfAddressHelp("Verified address selected from Google suggestions.","ready");
+  };
+  const renderSuggestions=suggestions=>{
+    state.items=suggestions.map(item=>item.placePrediction).filter(Boolean);
+    state.activeIndex=-1;
+    box.replaceChildren();
+    state.items.forEach((prediction,index)=>{
+      const button=document.createElement("button");
+      button.type="button";
+      button.setAttribute("role","option");
+      button.textContent=prediction.text?.toString?.()||prediction.text?.text||"";
+      button.addEventListener("mousedown",event=>event.preventDefault());
+      button.addEventListener("click",()=>choose(prediction));
+      box.appendChild(button);
+    });
+    box.classList.toggle("hidden",!state.items.length);
+  };
+  el.addEventListener("input",()=>{
+    if(state.disabled)return;
+    if(state.ignoreNextInput){state.ignoreNextInput=false;return;}
+    clearTimeout(state.timer);
+    const input=el.value.trim();
+    if(input.length<3){bcfHideAddressSuggestions(el);return;}
+    state.timer=setTimeout(async()=>{
+      const requestId=++state.requestId;
+      try{
+        const out=await AutocompleteSuggestion.fetchAutocompleteSuggestions({input,sessionToken:state.token,region:"us",language:"en-US"});
+        if(requestId===state.requestId)renderSuggestions(out.suggestions||[]);
+      }catch{
+        if(requestId!==state.requestId)return;
+        bcfHideAddressSuggestions(el);
+        if(window.google?.maps?.places?.Autocomplete){
+          state.disabled=true;
+          delete el.dataset.placesReady;
+          bcfAttachLegacyAddressAutocomplete(el);
+        }
+      }
+    },250);
+  });
+  el.addEventListener("keydown",event=>{
+    if(box.classList.contains("hidden")||!state.items.length)return;
+    if(event.key==="Escape"){bcfHideAddressSuggestions(el);return;}
+    if(event.key==="ArrowDown"||event.key==="ArrowUp"){
+      event.preventDefault();
+      state.activeIndex=(state.activeIndex+(event.key==="ArrowDown"?1:-1)+state.items.length)%state.items.length;
+      [...box.children].forEach((item,index)=>item.classList.toggle("active",index===state.activeIndex));
+      return;
+    }
+    if(event.key==="Enter"&&state.activeIndex>=0){event.preventDefault();choose(state.items[state.activeIndex]);}
+  });
+  el.addEventListener("blur",()=>setTimeout(()=>bcfHideAddressSuggestions(el),150));
+  el.dataset.placesReady="modern";
+  return true;
+}
+function bcfAttachLegacyAddressAutocomplete(el){
+  if(el.dataset.placesReady)return true;
+  if(!window.google?.maps?.places?.Autocomplete)return false;
+  const ac=new google.maps.places.Autocomplete(el,{types:["address"],componentRestrictions:{country:"us"},fields:["formatted_address","address_components","geometry"]});
+  el.dataset.placesReady="legacy";
+  ac.addListener("place_changed",()=>{
+    const place=ac.getPlace();
+    if(place?.formatted_address){el.value=place.formatted_address;el.dispatchEvent(new Event("change",{bubbles:true}));bcfAddressHelp("Verified address selected from Google suggestions.","ready");}
+  });
+  return true;
+}
+async function bcfApplyAddressAutocomplete(){
+  try{
+    const ok=await bcfLoadGooglePlaces();
+    if(!ok)return false;
+    let attached=0;
+    for(const id of BCF_ADDRESS_INPUT_IDS){
+      const el=$(id);if(!el)continue;
+      if(el.dataset.placesReady){attached+=1;continue;}
+      const modern=await bcfAttachModernAddressAutocomplete(el);
+      if(modern||bcfAttachLegacyAddressAutocomplete(el))attached+=1;
+    }
+    if(attached)bcfAddressHelp("Start typing at least 3 characters, then choose the complete address from the list.","ready");
+    else bcfAddressHelp("Address suggestions could not start. Check the Google Maps API key in Settings.","error");
+    return attached>0;
+  }catch{
+    bcfAddressHelp("Address suggestions could not load. Check the Google Maps API key in Settings.","error");
+    return false;
+  }
+}
+document.addEventListener("focusin",e=>{if(BCF_ADDRESS_INPUT_IDS.includes(e.target?.id))bcfApplyAddressAutocomplete();});
+document.addEventListener("click",e=>{BCF_ADDRESS_INPUT_IDS.forEach(id=>{const el=$(id);if(el&&e.target!==el&&!el.parentElement?.contains(e.target))bcfHideAddressSuggestions(el);});});
+$("cloudSetupForm")?.addEventListener("submit",()=>setTimeout(()=>{bcfPlacesPromise=null;BCF_ADDRESS_INPUT_IDS.forEach(id=>{const el=$(id);if(el)delete el.dataset.placesReady;});bcfApplyAddressAutocomplete();},0));
 setTimeout(bcfApplyAddressAutocomplete,800);
 
 
@@ -2623,14 +2788,14 @@ $('openLoanInAnalyzerBtn')?.addEventListener('click',()=>{
   $('loanDialog')?.close();
   document.querySelector('[data-view="deal-analyzer"]')?.click();
   setTimeout(()=>{
-    if(loanId&&$('dealLoanSelect'))$('dealLoanSelect').value=loanId;
+    refreshDealPackageLoanPicker();
     if(loanId&&$('dealLoanSelect'))$('dealLoanSelect').value=loanId;
     if(!loadLoanIntoDealAnalyzer(false)){
       $('dealAddress').value=address;
       $('dealAddress').dispatchEvent(new Event('input',{bubbles:true}));
     }
     $('dealAddress').focus();
-    $('dealAnalyzerStatus').textContent='Application data transferred to the Deal Analyzer. Review or correct the figures before analyzing.';
+    $('dealAnalyzerStatus').textContent='Application data transferred to the Deal Analyzer. Review or correct the address, requested loan amount, and project figures before analyzing.';
   },80);
 });
 $('useSelectedLoanAddressBtn')?.addEventListener('click',()=>{
@@ -2640,7 +2805,7 @@ $('useSelectedLoanAddressBtn')?.addEventListener('click',()=>{
   $('dealAddress').value=bcfCleanAddressText($('dealAddress').value);
   $('dealAddress').dispatchEvent(new Event('input',{bubbles:true}));
   $('dealAddress').focus();
-  $('dealAnalyzerStatus').textContent='Application data loaded. Review or correct the address, square footage, purchase price, rehab budget, and ARV before analyzing.';
+  $('dealAnalyzerStatus').textContent='Application data loaded. Review or correct the address, requested loan amount, square footage, purchase price, rehab budget, and ARV before analyzing.';
 });
 $('pasteDealAddressBtn')?.addEventListener('click',async()=>{
   try{

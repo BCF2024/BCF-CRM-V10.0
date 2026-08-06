@@ -1,3 +1,13 @@
+BearCrest CRM Version 11.1.6
+
+FIXED IN VERSION 11.1.6
+- The Deal Analyzer now refreshes the application list before transferring a loan, so the selected application's full data is loaded instead of only the address.
+- Requested Loan Amount now has its own editable Deal Analyzer field and automatically loads from the CRM or imported Jotform answers.
+- Property address, purchase price, rehab budget, square footage, ARV, closing costs, transaction type, and requested loan amount all transfer together when available.
+- Address autocomplete now uses Google's current Places autocomplete interface and keeps the older interface as a fallback.
+- Jotform address objects are converted into a complete Street, City, State ZIP format before being saved.
+- Updated the offline cache name and all asset version tags so browsers install the corrected files instead of reusing an older build.
+
 BearCrest CRM Version 11.1.5
 
 NEW IN VERSION 11.1.5

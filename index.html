@@ -4,12 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#073f2c" />
-  <title>BearCrest CRM — Version 11.1.5 – Multi-User Edition</title>
-  <link rel="manifest" href="manifest.json?v=11.1.5" />
-  <link rel="stylesheet" href="styles.css?v=11.1.5" />
+  <title>BearCrest CRM — Version 11.1.6 – Multi-User Edition</title>
+  <link rel="manifest" href="manifest.json?v=11.1.6" />
+  <link rel="stylesheet" href="styles.css?v=11.1.6" />
 
 <style id="v11Styles">
 .v11-row{display:grid;grid-template-columns:minmax(220px,1fr) auto auto auto;gap:12px;align-items:center;padding:14px 10px;border-bottom:1px solid #e5e7e5}.v11-row small{display:block;color:#68736c;margin-top:4px}.submission-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.submission-preview{margin-top:18px;padding:18px;background:#f6f7f4;border:1px solid #dfe4df;border-radius:10px}.submission-head{display:flex;align-items:center;gap:12px;border-bottom:2px solid #b59a52;padding-bottom:10px}.submission-head img{width:58px}.submission-head div:last-child{margin-left:auto;text-align:right}.submission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.submission-grid div{background:white;border:1px solid #e1e5e1;padding:9px;border-radius:6px}.submission-grid small{display:block;color:#6c746f}.submission-notes{background:white;border:1px solid #e1e5e1;padding:12px;border-radius:6px}.submission-notes h3{margin-top:0}.hidden{display:none!important}@media(max-width:800px){.submission-stats,.submission-grid{grid-template-columns:1fr 1fr}.v11-row{grid-template-columns:1fr auto}.v11-row button{grid-column:auto}}
+</style>
+<style id="v1116Styles">
+.bcf-address-suggestions{position:absolute;left:0;right:0;top:calc(100% - 2px);z-index:1000;background:#fff;border:1px solid #aebbb4;border-radius:8px;box-shadow:0 10px 24px #173f3530;max-height:260px;overflow:auto;padding:4px}.bcf-address-suggestions button{display:block;width:100%;padding:10px 12px;border:0;border-radius:5px;background:#fff;color:#17231e;text-align:left;font:inherit;cursor:pointer}.bcf-address-suggestions button:hover,.bcf-address-suggestions button.active{background:#edf3ef;color:#073f2c}.deal-input-grid label:has(> #dealAddress),.form-grid label:has(> #propertyAddress){position:relative}#dealAddressHelp[data-state="setup"],#dealAddressHelp[data-state="error"]{color:#9a4d00;font-weight:700}#dealAddressHelp[data-state="ready"]{color:#356b50}
 </style>
 </head>
 <body class="auth-locked v5-body">
@@ -18,7 +21,7 @@
       <img src="bcf-logo.png" alt="BearCrest Funding, LLC logo" class="login-logo" />
       <div class="login-kicker">BEARCREST FUNDING, LLC</div>
       <h1>BearCrest CRM</h1>
-      <p><strong data-app-version>Version 11.1.5 – Multi-User Edition</strong><br>Sign in to access your private lending dashboard.</p>
+      <p><strong data-app-version>Version 11.1.6 – Multi-User Edition</strong><br>Sign in to access your private lending dashboard.</p>
       <form id="loginForm" autocomplete="on">
         <label>Username<input id="loginUsername" autocomplete="username" required /></label>
         <label>Password<div class="password-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required /><button id="togglePasswordBtn" type="button" class="show-password">Show</button></div></label>
@@ -31,7 +34,7 @@
 
   <div class="mobile-appbar">
     <button id="mobileMenuBtn" aria-label="Open navigation">☰</button>
-    <div><strong>BearCrest CRM</strong><small data-app-version>Version 11.1.5 – Multi-User Edition</small></div>
+    <div><strong>BearCrest CRM</strong><small data-app-version>Version 11.1.6 – Multi-User Edition</small></div>
     <button id="mobileConnectionStatus" class="connection-status-pill is-checking" type="button" aria-label="Connection status" title="Open connection settings"><i></i><span>Checking</span></button>
     <button id="mobileQuickAddBtn" aria-label="Add loan">＋</button>
   </div>
@@ -84,7 +87,7 @@
     <div class="workspace">
       <header class="topbar">
         <div>
-          <h1>BEARCREST CRM <span data-app-version>VERSION 11.1.5 – MULTI-USER EDITION</span></h1>
+          <h1>BEARCREST CRM <span data-app-version>VERSION 11.1.6 – MULTI-USER EDITION</span></h1>
           <p id="viewSubtitle">Business-purpose lending operations dashboard</p>
         </div>
         <div class="top-actions">
@@ -357,7 +360,7 @@
               </div>
               <label class="wide">Property Address
                 <input id="dealAddress" autocomplete="street-address" inputmode="text" placeholder="Type, copy and paste, or select the complete property address" />
-                <small>Copy the address from the loan application and paste it here. Google address suggestions appear when Places is configured.</small>
+                <small id="dealAddressHelp">Start typing at least 3 characters, then choose the complete address from the list.</small>
               </label>
               <div class="wide" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:-4px">
                 <button id="useSelectedLoanAddressBtn" type="button">Use Address From Selected Loan</button>
@@ -369,6 +372,7 @@
                 <input id="dealSquareFootage" type="number" min="1" step="1" inputmode="numeric" placeholder="Enter heated living area, for example 1,650" />
                 <small>Required for the most accurate automated ARV. The CRM multiplies this square footage by the selected comps’ median price per square foot.</small>
               </label>
+              <label>Requested Loan Amount<input id="dealLoanAmount" type="number" step="100" /><small>Automatically loaded from the selected application and still editable here.</small></label>
               <label>Purchase Price<input id="dealPurchasePrice" type="number" step="100" /></label>
               <label>Rehab Budget<input id="dealRehabBudget" type="number" step="100" /></label>
               <label>Manual ARV Override (Optional)<input id="dealArvOverride" type="number" step="100" placeholder="Leave blank to use selected comps" /><small>Only use when you have stronger documented support.</small></label>
@@ -491,7 +495,7 @@
 
       <footer class="status-footer">
         <span>© 2026 BearCrest Funding, LLC</span>
-        <span id="v5FooterStats">BearCrest CRM · Version 11.1.5</span>
+        <span id="v5FooterStats">BearCrest CRM · Version 11.1.6</span>
       </footer>
     </div>
   </div>
@@ -511,6 +515,7 @@
         <label>Transaction Type<select id="transactionType"><option>Purchase</option><option>Refinance</option><option>Delayed Purchase</option></select></label>
         <label class="wide">Property Address<input id="propertyAddress" autocomplete="street-address" /><small>You can copy this address and paste it into the Deal Analyzer.</small></label>
         <div class="wide" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:-4px"><button id="copyLoanAddressBtn" type="button">Copy Property Address</button><button id="openLoanInAnalyzerBtn" type="button">Send Address to Deal Analyzer</button></div>
+        <label>Subject Square Footage<input id="squareFootage" type="number" min="1" step="1" inputmode="numeric" /></label>
         <label>Loan Amount<input id="loanAmount" type="number" step="100" /></label>
         <label>Purchase Price<input id="purchasePrice" type="number" step="100" /></label>
         <label>Rehab Budget<input id="rehabBudget" type="number" step="100" /></label>
@@ -605,7 +610,7 @@
       <div class="settings-section"><h3>Smart Address Completion</h3><div class="settings-grid">
         <label class="wide">Google Maps API Key<input id="googlePlacesApiKey" type="password" placeholder="Optional — enables address suggestions as you type" /><small>Enable Maps JavaScript API and Places API in Google Cloud. The key stays in this browser.</small></label>
         <label>Address Suggestions<select id="addressAutocompleteEnabled"><option value="on">On</option><option value="off">Off</option></select></label>
-        <div class="wide setup-note">This validates addresses entered inside the CRM. JotForm address autocomplete is configured separately in the JotForm builder; see JOTFORM_ADDRESS_SETUP.txt included with Version 11.1.5.</div>
+        <div class="wide setup-note">This validates addresses entered inside the CRM. JotForm address autocomplete is configured separately in the JotForm builder; see JOTFORM_ADDRESS_SETUP.txt included with Version 11.1.6.</div>
       </div></div>
       <div class="settings-section"><h3>Google Email</h3><div class="settings-grid">
         <label>Sender Display Name<input id="adminEmailSenderName" value="BearCrest Funding, LLC" /></label>
@@ -843,7 +848,7 @@ getfunded@bearcrest.com</textarea></label>
     <input id="mobilePickerSearch" placeholder="Search borrower or property..." />
     <div id="mobilePickerList" class="mobile-picker-list"></div>
   </dialog>
-  <script src="config.js?v=11.1.5"></script>
+  <script src="config.js?v=11.1.6"></script>
   <script>
   (() => {
     const cfg = window.BEARCREST_CONFIG || {};
@@ -856,14 +861,14 @@ getfunded@bearcrest.com</textarea></label>
     });
   })();
   </script>
-  <script src="app.js?v=11.1.5"></script>
-  <script src="auth.js?v=11.1.5"></script>
-  <script src="v11.js?v=11.1.5"></script>
+  <script src="app.js?v=11.1.6"></script>
+  <script src="auth.js?v=11.1.6"></script>
+  <script src="v11.js?v=11.1.6"></script>
   <script>
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", async () => {
       try {
-        const registration = await navigator.serviceWorker.register("./service-worker.js?v=11.1.5", { updateViaCache: "none" });
+        const registration = await navigator.serviceWorker.register("./service-worker.js?v=11.1.6", { updateViaCache: "none" });
         await registration.update();
       } catch (error) {
         console.error("Service worker update failed:", error);

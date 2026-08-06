@@ -2336,6 +2336,8 @@ function loadLoanIntoDealAnalyzer(showAlert=true){
   $("dealPurchasePrice").value=values.purchasePrice;
   $("dealRehabBudget").value=values.rehabBudget;
   $("dealSquareFootage").value=values.squareFootage;
+  $("dealBedrooms").value=values.bedrooms||"";
+  $("dealBathrooms").value=values.bathrooms||"";
   $("dealArvOverride").value=values.arv;
   if(values.closingCosts)$("dealClosingCosts").value=values.closingCosts;
   $("dealAnalyzerStatus").textContent=`Loaded available application data for ${loan.loanNumber||loan.borrowerName||"this loan"}. Review or correct any field before analyzing.`;
@@ -2375,14 +2377,53 @@ function bcfCompPrice(c){return Number(c.price||c.lastSalePrice||0)}
 function bcfCompSqft(c){return Number(c.squareFootage||0)}
 function bcfSuggestedArv(data,selectedIndexes,input={}){
   const comps=Array.isArray(data.comparables)?data.comparables:[];
-  const verifiedIndexes=Array.isArray(input.verifiedIndexes)?input.verifiedIndexes:[];
-  const chosen=comps.filter((_,i)=>selectedIndexes.includes(i)&&verifiedIndexes.includes(i));
-  const subjectSqft=Number(input?.squareFootage||data.squareFootage||data.property?.squareFootage||0);
-  const ppsf=chosen.map(c=>{const p=bcfCompPrice(c),s=bcfCompSqft(c);return p>0&&s>0?p/s:0}).filter(v=>v>0);
-  const prices=chosen.map(bcfCompPrice).filter(v=>v>0);
-  const medPpsf=median(ppsf), medPrice=median(prices);
-  const suggested=subjectSqft&&medPpsf?subjectSqft*medPpsf:medPrice;
-  return {suggested,medPpsf,medPrice,subjectSqft,count:chosen.length};
+  const verified=Array.isArray(input.verifiedIndexes)?input.verifiedIndexes:[];
+  const chosen=[...new Set((selectedIndexes||[]).filter(i=>verified.includes(i)))];
+  const subjectSqft=Number(input.squareFootage||data.squareFootage||data.property?.squareFootage||0);
+  const subjectBeds=Number(input.bedrooms||data.bedrooms||data.property?.bedrooms||0);
+  const subjectBaths=Number(input.bathrooms||data.bathrooms||data.property?.bathrooms||0);
+  const now=Date.now();
+  const scored=chosen.map(i=>{
+    const c=comps[i]||{}, price=bcfCompPrice(c), sqft=bcfCompSqft(c), ppsf=price&&sqft?price/sqft:0;
+    const distance=Number(c.distance||1), compBeds=Number(c.bedrooms||0), compBaths=Number(c.bathrooms||0);
+    const saleRaw=c.lastSaleDate||c.listedDate||c.removedDate||'';
+    const saleMs=Date.parse(saleRaw); const months=Number.isFinite(saleMs)?Math.max(0,(now-saleMs)/2629800000):12;
+    const sizeRatio=subjectSqft&&sqft?Math.min(subjectSqft,sqft)/Math.max(subjectSqft,sqft):0.7;
+    const distanceWeight=1/(1+distance*1.5), recencyWeight=1/(1+months/18);
+    const bedWeight=subjectBeds&&compBeds?1/(1+Math.abs(subjectBeds-compBeds)*0.35):1;
+    const bathWeight=subjectBaths&&compBaths?1/(1+Math.abs(subjectBaths-compBaths)*0.25):1;
+    const weight=Math.max(.05,sizeRatio*distanceWeight*recencyWeight*bedWeight*bathWeight);
+    return {i,c,price,sqft,ppsf,weight,sizeRatio,distance,months};
+  }).filter(x=>x.price>0&&x.sqft>0&&x.ppsf>0);
+  const ppsfs=scored.map(x=>x.ppsf).sort((a,b)=>a-b), medPpsf=median(ppsfs);
+  const filtered=scored.filter(x=>!medPpsf||(x.ppsf>=medPpsf*.70&&x.ppsf<=medPpsf*1.30));
+  const pool=filtered.length>=3?filtered:scored;
+  const prices=pool.map(x=>x.price).sort((a,b)=>a-b), ppsfValues=pool.map(x=>x.ppsf).sort((a,b)=>a-b);
+  const totalWeight=pool.reduce((a,x)=>a+x.weight,0);
+  const weightedPpsf=totalWeight?pool.reduce((a,x)=>a+x.ppsf*x.weight,0)/totalWeight:median(ppsfValues);
+  const averagePpsf=pool.length?pool.reduce((a,x)=>a+x.ppsf,0)/pool.length:0;
+  const medianPpsf=median(ppsfValues), averageSalePrice=pool.length?pool.reduce((a,x)=>a+x.price,0)/pool.length:0;
+  const medianSalePrice=median(prices);
+  const methods=[];
+  if(subjectSqft&&weightedPpsf)methods.push({name:'Similarity-Weighted PPSF',value:subjectSqft*weightedPpsf});
+  if(subjectSqft&&medianPpsf)methods.push({name:'Median PPSF',value:subjectSqft*medianPpsf});
+  if(subjectSqft&&averagePpsf)methods.push({name:'Average PPSF',value:subjectSqft*averagePpsf});
+  if(averageSalePrice)methods.push({name:'Average Renovated Sale',value:averageSalePrice});
+  if(medianSalePrice)methods.push({name:'Median Renovated Sale',value:medianSalePrice});
+  const methodValues=methods.map(m=>m.value).sort((a,b)=>a-b);
+  const recommended=median(methodValues);
+  const lowPpsf=ppsFPercentile(ppsfValues,.25), highPpsf=ppsFPercentile(ppsfValues,.75);
+  const low=subjectSqft&&lowPpsf?subjectSqft*lowPpsf:(methodValues[0]||0);
+  const high=subjectSqft&&highPpsf?subjectSqft*highPpsf:(methodValues[methodValues.length-1]||0);
+  const avgSimilarity=pool.length?pool.reduce((a,x)=>a+x.sizeRatio,0)/pool.length:0;
+  const spreadPct=recommended&&methodValues.length>1?(methodValues[methodValues.length-1]-methodValues[0])/recommended:1;
+  const confidence=pool.length>=5&&avgSimilarity>=.85&&spreadPct<=.15?'High':pool.length>=3&&avgSimilarity>=.70&&spreadPct<=.25?'Moderate':'Low';
+  return {suggested:recommended,recommended,methods,weightedPpsf,averagePpsf,medianPpsf,averageSalePrice,medianSalePrice,subjectSqft,count:chosen.length,usableCount:pool.length,low,high,confidence,scored:pool};
+}
+function ppsFPercentile(values,p){
+  if(!values.length)return 0;
+  const i=(values.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
+  return values[lo]+(values[hi]-values[lo])*(i-lo);
 }
 function recalculateDealArv(){
   if(!lastDealAnalysis)return;
@@ -2393,6 +2434,24 @@ function recalculateDealArv(){
   renderDealAnalysis(lastDealAnalysis.data,lastDealAnalysis.input,selected);
 }
 window.recalculateDealArv=recalculateDealArv;
+function openPropertySearch(site){
+  const address=String($("dealAddress")?.value||"").trim();
+  if(!address)return alert("Enter the property address first.");
+  const q=encodeURIComponent(address);
+  const urls={
+    zillow:`https://www.zillow.com/homes/${q}_rb/`,
+    redfin:`https://www.redfin.com/stingray/do/location-autocomplete?location=${q}`,
+    realtor:`https://www.realtor.com/realestateandhomes-search/${q}`
+  };
+  // Search URLs are used because these sites can change their property-page URL format.
+  if(site==='redfin')window.open(`https://www.google.com/search?q=${encodeURIComponent('site:redfin.com '+address)}`,'_blank','noopener');
+  else if(site==='realtor')window.open(`https://www.google.com/search?q=${encodeURIComponent('site:realtor.com '+address)}`,'_blank','noopener');
+  else window.open(urls[site],'_blank','noopener');
+}
+$("openZillowBtn")?.addEventListener("click",()=>openPropertySearch('zillow'));
+$("openRedfinBtn")?.addEventListener("click",()=>openPropertySearch('redfin'));
+$("openRealtorBtn")?.addEventListener("click",()=>openPropertySearch('realtor'));
+
 function renderDealAnalysis(data,input,selectedIndexes){
   const comps=Array.isArray(data.comparables)?data.comparables:[];
   if(!Array.isArray(selectedIndexes))selectedIndexes=[];
@@ -2415,18 +2474,20 @@ function renderDealAnalysis(data,input,selectedIndexes){
     <div class="deal-metric"><small>Deal Type</small><strong>${esc(dealType)}</strong></div>
     <div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div>
     <div class="deal-metric"><small>Verified Renovated Comps</small><strong>${calc.count}</strong></div>
-    <div class="deal-metric"><small>Suggested ARV</small><strong>${automatedArv?currency0(automatedArv):'Not calculated'}</strong></div>
+    <div class="deal-metric"><small>BearCrest Recommended ARV</small><strong>${automatedArv?currency0(automatedArv):'Not calculated'}</strong></div>
     <div class="deal-metric"><small>ARV Used for Analysis</small><strong>${analysisValue?currency0(analysisValue):'—'}</strong></div>
-    <div class="deal-metric"><small>Median Renovated Comp PPSF</small><strong>${calc.medPpsf?currency0(calc.medPpsf):'—'}</strong></div>
+    <div class="deal-metric"><small>Similarity-Weighted Comp PPSF</small><strong>${calc.weightedPpsf?currency0(calc.weightedPpsf):'—'}</strong></div>
+    <div class="deal-metric"><small>Supported ARV Range</small><strong>${calc.low&&calc.high?currency0(calc.low)+' – '+currency0(calc.high):'—'}</strong></div>
+    <div class="deal-metric"><small>ARV Confidence</small><strong>${esc(calc.confidence)}</strong></div>
     <div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div>
     <div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div>
-  </div><div class="deal-note"><b>ARV protection:</b> RentCast supplies nearby sold comps, but does not certify that they were renovated. The CRM will now calculate ARV only from comps you both select and mark <b>Renovated / ARV Verified</b>. Use listing photos, MLS remarks, or another reliable source to verify condition.${manualArv?'<br><b>Manual override active:</b> The entered override is being used.':''}${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
+  </div>${calc.methods?.length?`<div class="deal-comps"><h3>BearCrest ARV Methods</h3><table><thead><tr><th>Valuation Method</th><th>Indicated ARV</th></tr></thead><tbody>${calc.methods.map(m=>`<tr><td>${esc(m.name)}</td><td><b>${currency0(Math.round(m.value/1000)*1000)}</b></td></tr>`).join("")}</tbody></table><p style="margin:10px 0 0"><b>Recommended ARV:</b> ${currency0(automatedArv)} — reconciled from the middle of the supported methods to reduce the impact of one unusually high or low result.</p></div>`:''}<div class="deal-note"><b>ARV protection:</b> RentCast supplies nearby sold comps, but does not certify that they were renovated. The CRM calculates ARV only from comps you both select and mark <b>Renovated / ARV Verified</b>. It now gives greater weight to comps that are closer, newer, and more similar in square footage, bedrooms, and bathrooms, while reducing the impact of price-per-square-foot outliers. Use listing photos, MLS remarks, or another reliable source to verify condition.${manualArv?'<br><b>Manual override active:</b> The entered override is being used.':''}${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
   <div class="deal-actions"><button type="button" class="primary" onclick="recalculateDealArv()">Recalculate Verified ARV</button><span>Minimum: 3 renovated sold comps.</span></div>
   <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Use</th><th>Renovated / ARV Verified</th><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map((c,i)=>{const price=bcfCompPrice(c),sf=bcfCompSqft(c);return `<tr><td><input class="deal-comp-select" data-index="${i}" type="checkbox" ${selectedIndexes.includes(i)?'checked':''}></td><td><input class="deal-comp-renovated" data-index="${i}" type="checkbox" ${input.verifiedIndexes.includes(i)?'checked':''}></td><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="9">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
-  const input={dealType:selectedDealType(),address,squareFootage:$("dealSquareFootage").value,loanAmount:$("dealLoanAmount").value,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
+  const input={dealType:selectedDealType(),address,squareFootage:$("dealSquareFootage").value,bedrooms:$("dealBedrooms").value,bathrooms:$("dealBathrooms").value,loanAmount:$("dealLoanAmount").value,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
   try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
@@ -2436,7 +2497,7 @@ $("createDealPackageBtn")?.addEventListener("click",createDealPackagePdf);
 $("dealLoanSelect")?.addEventListener("focus",refreshDealPackageLoanPicker);
 $("dealLoanSelect")?.addEventListener("change",()=>loadLoanIntoDealAnalyzer(false));
 refreshDealPackageLoanPicker();
-$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;setDealType("Purchase");["dealAddress","dealSquareFootage","dealLoanAmount","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
+$("clearDealBtn")?.addEventListener("click",()=>{lastDealAnalysis=null;setDealType("Purchase");["dealAddress","dealSquareFootage","dealBedrooms","dealBathrooms","dealLoanAmount","dealPurchasePrice","dealRehabBudget","dealArvOverride","dealClosingCosts"].forEach(id=>$(id).value=id==="dealClosingCosts"?"0":"");$("dealAnalyzerResults").classList.add("hidden");$("dealAnalyzerResults").innerHTML="";$("dealAnalyzerStatus").textContent="";});
 
 
 
@@ -2592,7 +2653,7 @@ function bcfCleanAddressText(value){
   el.addEventListener('drop',()=>setTimeout(()=>{el.value=bcfCleanAddressText(el.value);el.dispatchEvent(new Event('input',{bubbles:true}));},0));
 });
 
-// ===== BearCrest Version 11.1.7: Current Google address autocomplete with legacy fallback =====
+// ===== BearCrest Version 11.2.0: Current Google address autocomplete with legacy fallback =====
 const BCF_ADDRESS_INPUT_IDS=["propertyAddress","dealAddress","matchAddress","contactAddress"];
 let bcfPlacesPromise=null;
 function bcfAddressHelp(message,state=""){

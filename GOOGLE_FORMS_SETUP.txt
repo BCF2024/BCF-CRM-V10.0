@@ -1,4 +1,4 @@
-BEARCREST GOOGLE FORMS SETUP – VERSION 12.5.0
+BEARCREST GOOGLE FORMS SETUP – VERSION 12.5.1
 
 1. Upload the updated BearCrest_Cloud_Connector.gs code into your existing Google Apps Script project.
 2. Deploy a NEW VERSION of the Web App (Deploy > Manage deployments > Edit > New version > Deploy).

@@ -2377,8 +2377,7 @@ function bcfCompPrice(c){return Number(c.price||c.lastSalePrice||0)}
 function bcfCompSqft(c){return Number(c.squareFootage||0)}
 function bcfSuggestedArv(data,selectedIndexes,input={}){
   const comps=Array.isArray(data.comparables)?data.comparables:[];
-  const verified=Array.isArray(input.verifiedIndexes)?input.verifiedIndexes:[];
-  const chosen=[...new Set((selectedIndexes||[]).filter(i=>verified.includes(i)))];
+  const chosen=[...new Set(selectedIndexes||[])];
   const subjectSqft=Number(input.squareFootage||data.squareFootage||data.property?.squareFootage||0);
   const subjectBeds=Number(input.bedrooms||data.bedrooms||data.property?.bedrooms||0);
   const subjectBaths=Number(input.bathrooms||data.bathrooms||data.property?.bathrooms||0);
@@ -2408,8 +2407,8 @@ function bcfSuggestedArv(data,selectedIndexes,input={}){
   if(subjectSqft&&weightedPpsf)methods.push({name:'Similarity-Weighted PPSF',value:subjectSqft*weightedPpsf});
   if(subjectSqft&&medianPpsf)methods.push({name:'Median PPSF',value:subjectSqft*medianPpsf});
   if(subjectSqft&&averagePpsf)methods.push({name:'Average PPSF',value:subjectSqft*averagePpsf});
-  if(averageSalePrice)methods.push({name:'Average Renovated Sale',value:averageSalePrice});
-  if(medianSalePrice)methods.push({name:'Median Renovated Sale',value:medianSalePrice});
+  if(averageSalePrice)methods.push({name:'Average Selected Sale',value:averageSalePrice});
+  if(medianSalePrice)methods.push({name:'Median Selected Sale',value:medianSalePrice});
   const methodValues=methods.map(m=>m.value).sort((a,b)=>a-b);
   const recommended=median(methodValues);
   const lowPpsf=ppsFPercentile(ppsfValues,.25), highPpsf=ppsFPercentile(ppsfValues,.75);
@@ -2432,25 +2431,28 @@ function recalculateDealArv(){
     return;
   }
   const selected=[...document.querySelectorAll('.deal-comp-select')].filter(x=>x.checked).map(x=>Number(x.dataset.index));
-  const verified=[...document.querySelectorAll('.deal-comp-renovated')].filter(x=>x.checked).map(x=>Number(x.dataset.index));
-  const usable=selected.filter(i=>verified.includes(i));
-  if(usable.length<3){
-    if(status)status.textContent=`Select and verify at least 3 renovated comps. Current total: ${usable.length}.`;
+  if(selected.length<3){
+    if(status)status.textContent=`Keep at least 3 comparable sales selected. Current total: ${selected.length}.`;
     return;
   }
   const data=lastDealAnalysis.data;
-  const input={...lastDealAnalysis.input,verifiedIndexes:verified};
+  const input={...lastDealAnalysis.input};
   renderDealAnalysis(data,input,selected);
   const refreshed=document.getElementById('recalculateDealArvStatus');
-  if(refreshed)refreshed.textContent=`ARV recalculated using ${usable.length} verified renovated comps.`;
+  if(refreshed)refreshed.textContent=`ARV updated automatically using ${selected.length} selected comps.`;
 }
 window.recalculateDealArv=recalculateDealArv;
-document.addEventListener('click',event=>{
-  const button=event.target.closest('#recalculateDealArvBtn');
-  if(!button)return;
-  event.preventDefault();
+document.addEventListener('change',event=>{
+  if(!event.target.matches('.deal-comp-select'))return;
   recalculateDealArv();
 });
+function openCompSearch(site,address){
+  const query=String(address||'').trim();
+  if(!query)return;
+  const domain=site==='zillow'?'zillow.com':site==='redfin'?'redfin.com':'realtor.com';
+  window.open(`https://www.google.com/search?q=${encodeURIComponent('site:'+domain+' '+query)}`,'_blank','noopener');
+}
+window.openCompSearch=openCompSearch;
 function openPropertySearch(site){
   const address=String($("dealAddress")?.value||"").trim();
   if(!address)return alert("Enter the property address first.");
@@ -2471,8 +2473,7 @@ $("openRealtorBtn")?.addEventListener("click",()=>openPropertySearch('realtor'))
 
 function renderDealAnalysis(data,input,selectedIndexes){
   const comps=Array.isArray(data.comparables)?data.comparables:[];
-  if(!Array.isArray(selectedIndexes))selectedIndexes=[];
-  if(!Array.isArray(input.verifiedIndexes))input.verifiedIndexes=[];
+  if(!Array.isArray(selectedIndexes)||!selectedIndexes.length)selectedIndexes=comps.map((_,i)=>i);
   lastDealAnalysis={data,input,selectedIndexes,generatedAt:new Date().toISOString()};
   const calc=bcfSuggestedArv(data,selectedIndexes,input);
   const linkedLoan=selectedDealPackageLoan();
@@ -2483,14 +2484,14 @@ function renderDealAnalysis(data,input,selectedIndexes){
   const requestedLoan=Number(input.loanAmount||0), purchase=Number(input.purchasePrice||0), rehab=Number(input.rehabBudget||0), closing=Number(input.closingCosts||0), allIn=purchase+rehab+closing;
   const selling=analysisValue*(Number(input.sellingCostPct||0)/100), spread=analysisValue?analysisValue-allIn-selling:0, roi=allIn&&analysisValue?spread/allIn*100:0, max70=analysisValue?analysisValue*.70-rehab:0, grade=analysisValue?dealGrade(spread,roi,allIn,analysisValue):'NEEDS ARV COMPS';
   const warnings=[];
-  if(calc.count<3)warnings.push('ARV is not calculated until at least three selected comps are confirmed as renovated.');
+  if(calc.count<3)warnings.push('ARV is not calculated until at least three comparable sales remain selected.');
   if(!calc.subjectSqft)warnings.push('Enter subject square footage for the strongest price-per-square-foot ARV.');
   if(!comps.length)warnings.push('No comparable sales were returned.');
   $("dealAnalyzerResults").classList.remove("hidden");
   $("dealAnalyzerResults").innerHTML=`<div class="deal-summary-grid">
     <div class="deal-metric"><small>Deal Type</small><strong>${esc(dealType)}</strong></div>
     <div class="deal-metric"><small>Automated As-Is Value</small><strong>${currency0(asIs)}</strong></div>
-    <div class="deal-metric"><small>Verified Renovated Comps</small><strong>${calc.count}</strong></div>
+    <div class="deal-metric"><small>Selected Comparable Sales</small><strong>${calc.count}</strong></div>
     <div class="deal-metric"><small>BearCrest Recommended ARV</small><strong>${automatedArv?currency0(automatedArv):'Not calculated'}</strong></div>
     <div class="deal-metric"><small>ARV Used for Analysis</small><strong>${analysisValue?currency0(analysisValue):'—'}</strong></div>
     <div class="deal-metric"><small>Similarity-Weighted Comp PPSF</small><strong>${calc.weightedPpsf?currency0(calc.weightedPpsf):'—'}</strong></div>
@@ -2498,9 +2499,9 @@ function renderDealAnalysis(data,input,selectedIndexes){
     <div class="deal-metric"><small>ARV Confidence</small><strong>${esc(calc.confidence)}</strong></div>
     <div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div>
     <div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div>
-  </div>${calc.methods?.length?`<div class="deal-comps"><h3>BearCrest ARV Methods</h3><table><thead><tr><th>Valuation Method</th><th>Indicated ARV</th></tr></thead><tbody>${calc.methods.map(m=>`<tr><td>${esc(m.name)}</td><td><b>${currency0(Math.round(m.value/1000)*1000)}</b></td></tr>`).join("")}</tbody></table><p style="margin:10px 0 0"><b>Recommended ARV:</b> ${currency0(automatedArv)} — reconciled from the middle of the supported methods to reduce the impact of one unusually high or low result.</p></div>`:''}<div class="deal-note"><b>ARV protection:</b> RentCast supplies nearby sold comps, but does not certify that they were renovated. The CRM calculates ARV only from comps you both select and mark <b>Renovated / ARV Verified</b>. It now gives greater weight to comps that are closer, newer, and more similar in square footage, bedrooms, and bathrooms, while reducing the impact of price-per-square-foot outliers. Use listing photos, MLS remarks, or another reliable source to verify condition.${manualArv?'<br><b>Manual override active:</b> The entered override is being used.':''}${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
-  <div class="deal-actions"><button type="button" class="primary" id="recalculateDealArvBtn">Recalculate Verified ARV</button><span id="recalculateDealArvStatus">Minimum: 3 renovated sold comps.</span></div>
-  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Use</th><th>Renovated / ARV Verified</th><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map((c,i)=>{const price=bcfCompPrice(c),sf=bcfCompSqft(c);return `<tr><td><input class="deal-comp-select" data-index="${i}" type="checkbox" ${selectedIndexes.includes(i)?'checked':''}></td><td><input class="deal-comp-renovated" data-index="${i}" type="checkbox" ${input.verifiedIndexes.includes(i)?'checked':''}></td><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="9">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
+  </div>${calc.methods?.length?`<div class="deal-comps"><h3>BearCrest ARV Methods</h3><table><thead><tr><th>Valuation Method</th><th>Indicated ARV</th></tr></thead><tbody>${calc.methods.map(m=>`<tr><td>${esc(m.name)}</td><td><b>${currency0(Math.round(m.value/1000)*1000)}</b></td></tr>`).join("")}</tbody></table><p style="margin:10px 0 0"><b>Recommended ARV:</b> ${currency0(automatedArv)} — reconciled from the middle of the supported methods to reduce the impact of one unusually high or low result.</p></div>`:''}<div class="deal-note"><b>How to use this:</b> All RentCast comps start selected. Uncheck sales that are poor matches, distressed, unrenovated, or otherwise unsuitable. The ARV updates automatically. RentCast does not certify renovation condition, so use the Zillow, Redfin, and Realtor buttons beside a comp to review available listing photos and details.${manualArv?'<br><b>Manual override active:</b> The entered override is being used.':''}${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
+  <div class="deal-actions"><span id="recalculateDealArvStatus">All comps selected. Uncheck any comp you do not want used; ARV updates automatically.</span></div>
+  <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Use for ARV</th><th>Match</th><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th><th>Review</th></tr></thead><tbody>${comps.map((c,i)=>{const price=bcfCompPrice(c),sf=bcfCompSqft(c),address=c.formattedAddress||c.addressLine1||c.address||"",subjectSqft=Number(input.squareFootage||data.squareFootage||data.property?.squareFootage||0),sizeRatio=subjectSqft&&sf?Math.min(subjectSqft,sf)/Math.max(subjectSqft,sf):.7,distance=Number(c.distance||1),score=sizeRatio*(1/(1+distance));const match=score>=.62?'Excellent':score>=.42?'Good':'Weak';return `<tr><td><input class="deal-comp-select" data-index="${i}" type="checkbox" ${selectedIndexes.includes(i)?'checked':''}></td><td><b>${match}</b></td><td>${esc(address)}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td><td><button type="button" onclick='openCompSearch("zillow",${JSON.stringify(address)})'>Zillow</button> <button type="button" onclick='openCompSearch("redfin",${JSON.stringify(address)})'>Redfin</button> <button type="button" onclick='openCompSearch("realtor",${JSON.stringify(address)})'>Realtor</button></td></tr>`}).join("")||'<tr><td colspan="10">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
 }
 async function analyzeDeal(){
   const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");

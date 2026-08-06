@@ -1,4 +1,4 @@
-BearCrest CRM Version 12.0.0
+BearCrest CRM Version 12.0.1
 
 DEAL ANALYZER REBUILD
 - Robustly handles current and older Google Apps Script / RentCast response shapes.
@@ -12,26 +12,26 @@ DEAL ANALYZER REBUILD
 
 UPLOAD EVERY FILE IN THIS PACKAGE TO GITHUB AND REPLACE THE EXISTING FILES.
 
-BearCrest CRM Version 12.0.0
+BearCrest CRM Version 12.0.1
 
-NEW IN VERSION 12.0.0
+NEW IN VERSION 12.0.1
 - Zillow, Redfin, and Realtor.com quick-search buttons from the Deal Analyzer address.
 - Separate Current Market Check and After-Repair analysis workflow.
 - Five ARV indications: similarity-weighted PPSF, median PPSF, average PPSF, average renovated sale, and median renovated sale.
 - BearCrest Recommended ARV reconciles the middle of supported methods to reduce outlier impact.
 - Confidence reflects comp count, similarity, and agreement among methods.
 
-BearCrest CRM Version 12.0.0
+BearCrest CRM Version 12.0.1
 
-FIXED IN VERSION 12.0.0
+FIXED IN VERSION 12.0.1
 - ARV no longer uses every nearby sale automatically.
 - All returned comps are selected by default with one “Use for ARV” checkbox. Uncheck any comp you do not want included.
 - Separates RentCast as-is AVM from verified renovated-comp ARV.
 - Prevents ordinary/as-is comps from silently becoming the ARV.
 
-BearCrest CRM Version 12.0.0
+BearCrest CRM Version 12.0.1
 
-FIXED IN VERSION 12.0.0
+FIXED IN VERSION 12.0.1
 - The Deal Analyzer now refreshes the application list before transferring a loan, so the selected application's full data is loaded instead of only the address.
 - Requested Loan Amount now has its own editable Deal Analyzer field and automatically loads from the CRM or imported Jotform answers.
 - Property address, purchase price, rehab budget, square footage, ARV, closing costs, transaction type, and requested loan amount all transfer together when available.

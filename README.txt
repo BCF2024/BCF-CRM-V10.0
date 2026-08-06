@@ -1,6 +1,14 @@
-BearCrest CRM Version 11.1.6
+BearCrest CRM Version 11.1.7
 
-FIXED IN VERSION 11.1.6
+FIXED IN VERSION 11.1.7
+- ARV no longer uses every nearby sale automatically.
+- Requires at least 3 comps marked Renovated / ARV Verified.
+- Separates RentCast as-is AVM from verified renovated-comp ARV.
+- Prevents ordinary/as-is comps from silently becoming the ARV.
+
+BearCrest CRM Version 11.1.7
+
+FIXED IN VERSION 11.1.7
 - The Deal Analyzer now refreshes the application list before transferring a loan, so the selected application's full data is loaded instead of only the address.
 - Requested Loan Amount now has its own editable Deal Analyzer field and automatically loads from the CRM or imported Jotform answers.
 - Property address, purchase price, rehab budget, square footage, ARV, closing costs, transaction type, and requested loan amount all transfer together when available.

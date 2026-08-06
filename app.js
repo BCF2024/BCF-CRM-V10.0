@@ -2426,14 +2426,31 @@ function ppsFPercentile(values,p){
   return values[lo]+(values[hi]-values[lo])*(i-lo);
 }
 function recalculateDealArv(){
-  if(!lastDealAnalysis)return;
+  const status=document.getElementById('recalculateDealArvStatus');
+  if(!lastDealAnalysis){
+    if(status)status.textContent='Run Analyze Deal first.';
+    return;
+  }
   const selected=[...document.querySelectorAll('.deal-comp-select')].filter(x=>x.checked).map(x=>Number(x.dataset.index));
   const verified=[...document.querySelectorAll('.deal-comp-renovated')].filter(x=>x.checked).map(x=>Number(x.dataset.index));
-  lastDealAnalysis.selectedIndexes=selected;
-  lastDealAnalysis.input.verifiedIndexes=verified;
-  renderDealAnalysis(lastDealAnalysis.data,lastDealAnalysis.input,selected);
+  const usable=selected.filter(i=>verified.includes(i));
+  if(usable.length<3){
+    if(status)status.textContent=`Select and verify at least 3 renovated comps. Current total: ${usable.length}.`;
+    return;
+  }
+  const data=lastDealAnalysis.data;
+  const input={...lastDealAnalysis.input,verifiedIndexes:verified};
+  renderDealAnalysis(data,input,selected);
+  const refreshed=document.getElementById('recalculateDealArvStatus');
+  if(refreshed)refreshed.textContent=`ARV recalculated using ${usable.length} verified renovated comps.`;
 }
 window.recalculateDealArv=recalculateDealArv;
+document.addEventListener('click',event=>{
+  const button=event.target.closest('#recalculateDealArvBtn');
+  if(!button)return;
+  event.preventDefault();
+  recalculateDealArv();
+});
 function openPropertySearch(site){
   const address=String($("dealAddress")?.value||"").trim();
   if(!address)return alert("Enter the property address first.");
@@ -2482,7 +2499,7 @@ function renderDealAnalysis(data,input,selectedIndexes){
     <div class="deal-metric"><small>Total Project Cost</small><strong>${currency0(allIn)}</strong></div>
     <div class="deal-metric"><small>Preliminary Deal Grade</small><strong class="deal-grade">${grade}</strong></div>
   </div>${calc.methods?.length?`<div class="deal-comps"><h3>BearCrest ARV Methods</h3><table><thead><tr><th>Valuation Method</th><th>Indicated ARV</th></tr></thead><tbody>${calc.methods.map(m=>`<tr><td>${esc(m.name)}</td><td><b>${currency0(Math.round(m.value/1000)*1000)}</b></td></tr>`).join("")}</tbody></table><p style="margin:10px 0 0"><b>Recommended ARV:</b> ${currency0(automatedArv)} — reconciled from the middle of the supported methods to reduce the impact of one unusually high or low result.</p></div>`:''}<div class="deal-note"><b>ARV protection:</b> RentCast supplies nearby sold comps, but does not certify that they were renovated. The CRM calculates ARV only from comps you both select and mark <b>Renovated / ARV Verified</b>. It now gives greater weight to comps that are closer, newer, and more similar in square footage, bedrooms, and bathrooms, while reducing the impact of price-per-square-foot outliers. Use listing photos, MLS remarks, or another reliable source to verify condition.${manualArv?'<br><b>Manual override active:</b> The entered override is being used.':''}${warnings.length?'<br><b>Review:</b> '+warnings.map(esc).join(' '):''}</div>
-  <div class="deal-actions"><button type="button" class="primary" onclick="recalculateDealArv()">Recalculate Verified ARV</button><span>Minimum: 3 renovated sold comps.</span></div>
+  <div class="deal-actions"><button type="button" class="primary" id="recalculateDealArvBtn">Recalculate Verified ARV</button><span id="recalculateDealArvStatus">Minimum: 3 renovated sold comps.</span></div>
   <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Use</th><th>Renovated / ARV Verified</th><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th></tr></thead><tbody>${comps.map((c,i)=>{const price=bcfCompPrice(c),sf=bcfCompSqft(c);return `<tr><td><input class="deal-comp-select" data-index="${i}" type="checkbox" ${selectedIndexes.includes(i)?'checked':''}></td><td><input class="deal-comp-renovated" data-index="${i}" type="checkbox" ${input.verifiedIndexes.includes(i)?'checked':''}></td><td>${esc(c.formattedAddress||c.addressLine1||c.address||"")}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td></tr>`}).join("")||'<tr><td colspan="9">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
 }
 async function analyzeDeal(){
@@ -2653,7 +2670,7 @@ function bcfCleanAddressText(value){
   el.addEventListener('drop',()=>setTimeout(()=>{el.value=bcfCleanAddressText(el.value);el.dispatchEvent(new Event('input',{bubbles:true}));},0));
 });
 
-// ===== BearCrest Version 11.2.0: Current Google address autocomplete with legacy fallback =====
+// ===== BearCrest Version 11.2.1: Current Google address autocomplete with legacy fallback =====
 const BCF_ADDRESS_INPUT_IDS=["propertyAddress","dealAddress","matchAddress","contactAddress"];
 let bcfPlacesPromise=null;
 function bcfAddressHelp(message,state=""){

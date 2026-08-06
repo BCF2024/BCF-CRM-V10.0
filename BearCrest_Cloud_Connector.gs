@@ -16,7 +16,7 @@ const STARTER_LENDER_TAGS = {
 };
 
 function doGet(){
-  return json_({ok:true,message:'BearCrest Cloud Connector Version 4.0 is running.'});
+  return json_({ok:true,message:'BearCrest Cloud Connector Version 5.0 is running.'});
 }
 
 function doPost(e){
@@ -28,6 +28,8 @@ function doPost(e){
     if(action==='ensureLoanFolder')return json_(ensureLoanFolder_(payload));
     if(action==='uploadFile')return json_(uploadFile_(payload));
     if(action==='listFiles')return json_(listFiles_(payload));
+    if(action==='setupGoogleForm')return json_(setupGoogleForm_(payload));
+    if(action==='syncGoogleForms')return json_(syncGoogleForms_(payload));
     if(action==='syncJotform')return json_(syncJotform_(payload));
     if(action==='createApplicationPdf')return json_(createApplicationPdf_(payload));
     if(action==='rentcastAnalyze')return json_(rentcastAnalyze_(payload));
@@ -147,6 +149,75 @@ function syncJotform_(p){
 
   if(data.responseCode!==200)throw new Error(data.message||'Jotform could not be read.');
   return {ok:true,submissions:data.content||[]};
+}
+
+
+function setupGoogleForm_(){
+  const form=FormApp.create('BearCrest Funding – Investor Loan Application');
+  form.setDescription('Business-purpose real estate financing application. Complete the fields that apply to your requested loan.');
+  form.setConfirmationMessage('Thank you. BearCrest Funding has received your application and will contact you regarding next steps.');
+  form.setCollectEmail(true);
+
+  form.addSectionHeaderItem().setTitle('Borrower Information');
+  form.addTextItem().setTitle('Borrower Full Name').setRequired(true);
+  form.addTextItem().setTitle('Phone Number').setRequired(true);
+  form.addTextItem().setTitle('Email Address').setRequired(true);
+  form.addTextItem().setTitle('Borrowing Entity / LLC Name');
+  form.addTextItem().setTitle('Estimated Credit Score / FICO');
+  form.addTextItem().setTitle('Available Liquidity / Reserves');
+
+  form.addSectionHeaderItem().setTitle('Loan Request');
+  form.addListItem().setTitle('Loan Program Requested').setChoiceValues(['Fix & Flip','Bridge','DSCR Rental','Ground-Up Construction','Multifamily','Commercial','Other']).setRequired(true);
+  form.addMultipleChoiceItem().setTitle('Transaction Type').setChoiceValues(['Purchase','Refinance','Cash-Out Refinance','Delayed Purchase','Rehab Only']).setRequired(true);
+  form.addTextItem().setTitle('Requested Loan Amount').setRequired(true);
+  form.addTextItem().setTitle('Target Closing Date');
+  form.addParagraphTextItem().setTitle('Exit Strategy');
+
+  form.addSectionHeaderItem().setTitle('Property Information');
+  form.addTextItem().setTitle('Subject Property Address').setHelpText('Enter the complete street address, city, state, and ZIP.').setRequired(true);
+  form.addListItem().setTitle('Property Type').setChoiceValues(['Single Family','2–4 Unit','Condo','Townhome','5+ Multifamily','Mixed Use','Commercial','Land','Other']).setRequired(true);
+  form.addTextItem().setTitle('Subject Square Footage');
+  form.addTextItem().setTitle('Purchase Price');
+  form.addTextItem().setTitle('Current / As-Is Value');
+  form.addTextItem().setTitle('Rehab / Renovation Budget');
+  form.addTextItem().setTitle('Estimated After Repair Value (ARV)');
+  form.addMultipleChoiceItem().setTitle('Is the property rural?').setChoiceValues(['No','Yes','Not Sure']);
+
+  form.addSectionHeaderItem().setTitle('Experience and Additional Information');
+  form.addTextItem().setTitle('Completed Investment Projects in the Last 3 Years');
+  form.addParagraphTextItem().setTitle('Project Experience and Track Record');
+  form.addParagraphTextItem().setTitle('Additional Notes');
+
+  const sheet=SpreadsheetApp.create('BearCrest Funding – Google Form Responses');
+  form.setDestination(FormApp.DestinationType.SPREADSHEET,sheet.getId());
+  PropertiesService.getScriptProperties().setProperty('GOOGLE_FORM_SPREADSHEET_ID',sheet.getId());
+  PropertiesService.getScriptProperties().setProperty('GOOGLE_FORM_ID',form.getId());
+  return {ok:true,formId:form.getId(),formUrl:form.getPublishedUrl(),editUrl:form.getEditUrl(),spreadsheetId:sheet.getId(),spreadsheetUrl:sheet.getUrl()};
+}
+
+function syncGoogleForms_(p){
+  const spreadsheetId=String(p.spreadsheetId||PropertiesService.getScriptProperties().getProperty('GOOGLE_FORM_SPREADSHEET_ID')||'').trim();
+  if(!spreadsheetId)throw new Error('Google Form response spreadsheet ID is missing. Create the form from CRM Settings first.');
+  const ss=SpreadsheetApp.openById(spreadsheetId);
+  const sheet=ss.getSheets()[0];
+  const values=sheet.getDataRange().getDisplayValues();
+  if(values.length<2)return {ok:true,submissions:[]};
+  const headers=values[0].map((v,i)=>String(v||('Column '+(i+1))).trim());
+  const submissions=[];
+  for(let r=1;r<values.length;r++){
+    const row=values[r];
+    if(!row.some(v=>String(v||'').trim()))continue;
+    const answers={};
+    headers.forEach((header,i)=>{answers['q'+i]={order:i,text:header,name:header,answer:row[i]||''};});
+    const stamp=row[0]||'';
+    const digest=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,[spreadsheetId,sheet.getSheetId(),stamp,row.join('|')].join('|'));
+    const id=Utilities.base64EncodeWebSafe(digest).replace(/=+$/,'').slice(0,32);
+    let createdAt='';
+    try{createdAt=Utilities.formatDate(new Date(stamp),Session.getScriptTimeZone(),'yyyy-MM-dd HH:mm:ss');}catch(e){createdAt=stamp;}
+    submissions.push({id:id,rowNumber:r+1,created_at:createdAt,answers:answers});
+  }
+  submissions.reverse();
+  return {ok:true,submissions:submissions,spreadsheetUrl:ss.getUrl(),sheetName:sheet.getName()};
 }
 
 

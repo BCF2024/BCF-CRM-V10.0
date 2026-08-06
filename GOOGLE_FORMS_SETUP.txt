@@ -1,0 +1,14 @@
+BEARCREST GOOGLE FORMS SETUP – VERSION 12.5.0
+
+1. Upload the updated BearCrest_Cloud_Connector.gs code into your existing Google Apps Script project.
+2. Deploy a NEW VERSION of the Web App (Deploy > Manage deployments > Edit > New version > Deploy).
+3. Upload the CRM files to the root of the GitHub repository.
+4. Open the CRM in an Incognito window or clear the old service worker/site data.
+5. Open Settings > Google Forms Application.
+6. Click Create BearCrest Google Form.
+7. Google may request Forms and Sheets permissions. Approve them.
+8. The form link and response spreadsheet ID will save in CRM Settings.
+9. Edit the form in Google Forms whenever you need to change wording or add questions. Keep the main field titles similar so CRM mapping remains automatic.
+10. Click Sync Google Forms in the CRM to import new applications.
+
+IMPORTANT: The Google Form and response spreadsheet are created in the Google account that owns the Apps Script deployment.

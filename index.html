@@ -92,7 +92,7 @@
         </div>
         <div class="top-actions">
           <button id="applicationBtn">BCF Application</button>
-          <button id="syncApplicationsBtn">Sync New Applications</button>
+          <button id="syncApplicationsBtn">Sync Google Forms</button>
           <button id="exportBtn">Export</button>
           <label class="import-label">Import<input id="importFile" type="file" accept=".json" hidden /></label>
           <label class="import-label hidden">Import CSV<input id="csvFile" type="file" accept=".csv,text/csv" hidden /></label>
@@ -616,9 +616,11 @@
         <label>Main Drive Folder Name<input id="adminRootFolder" value="BearCrest CRM Documents" /></label>
         <div class="wide local-drive-setting"><strong>Google Drive for Desktop Storage</strong><p id="localDriveAdminStatus">No synchronized folder selected.</p><button type="button" id="chooseLocalDriveBtn">Choose Google Drive Folder</button> <button type="button" id="clearLocalDriveBtn">Disconnect Folder</button></div>
       </div>
-      <div class="settings-section"><h3>Investor Application</h3><div class="settings-grid">
-        <label>Jotform Form ID<input id="jotformFormId" value="261954251577061" /></label>
-        <label>Application Link<input id="jotformUrl" value="https://form.jotform.com/261954251577061" /></label>
+      <div class="settings-section"><h3>Google Forms Application</h3><div class="settings-grid">
+        <label class="wide">Google Form Link<input id="googleFormUrl" placeholder="Created automatically or paste the public Google Form link" /></label>
+        <label class="wide">Response Spreadsheet ID<input id="googleFormSheetId" placeholder="The long ID between /d/ and /edit in the linked response Sheet URL" /><small>Responses are imported from this linked Google Sheet.</small></label>
+        <div class="wide setup-note">Click <strong>Create BearCrest Google Form</strong> once. The Apps Script will create the form, its response spreadsheet, and return both links. You can then edit the questions in Google Forms.</div>
+        <div class="wide"><button type="button" id="createGoogleFormBtn">Create BearCrest Google Form</button> <button type="button" id="openGoogleFormBtn">Open Google Form</button></div>
       </div></div>
       <div class="settings-section"><h3>Smart Address Completion</h3><div class="settings-grid">
         <label class="wide">Google Maps API Key<input id="googlePlacesApiKey" type="password" placeholder="Optional — enables address suggestions as you type" /><small>Enable Maps JavaScript API and Places API in Google Cloud. The key stays in this browser.</small></label>
@@ -654,7 +656,7 @@ getfunded@bearcrest.com</textarea></label>
         <label>New Password<input id="adminNewPassword" type="password" autocomplete="new-password" placeholder="Leave blank to keep current password" /></label>
         <label>Confirm New Password<input id="adminConfirmPassword" type="password" autocomplete="new-password" /></label>
       </div><p class="security-help">Use at least 10 characters. For a hosted version, this temporary browser login should be replaced with server-based authentication and optional two-step verification.</p></div>
-      <div class="setup-note">Most preferences are saved in this browser. The Apps Script connection can be shared across every device through config.js. Company information automatically appears on generated documents. The loan prefix and next number control newly created loans. Your Jotform API key remains stored only in Google Apps Script Script Properties.</div>
+      <div class="setup-note">Most preferences are saved in this browser. The Apps Script connection can be shared across every device through config.js. Company information automatically appears on generated documents. The loan prefix and next number control newly created loans. Google Form responses are read through the linked Google response spreadsheet. No JotForm subscription or API key is required.</div>
       <div class="dialog-actions"><button type="button" id="resetAdminBtn">Restore Defaults</button><div class="spacer"></div><button type="button" id="testCloudBtn">Test Drive Connection</button><button type="submit" class="primary">Save Admin Settings</button></div>
     </form>
   </dialog>

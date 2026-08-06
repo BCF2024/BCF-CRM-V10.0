@@ -2213,7 +2213,7 @@ renderLoansPage();renderCommunicationCenter();
 })();
 
 
-// ===== BearCrest Deal Analyzer + CRM/Jotform Application PDF =====
+// ===== BearCrest Deal Analyzer v12.0 + CRM/Jotform Application PDF =====
 function normalizeJotformApplication(submission){
   const answers=submission?.answers||{};
   return Object.values(answers).map(a=>({
@@ -2343,7 +2343,27 @@ function loadLoanIntoDealAnalyzer(showAlert=true){
   $("dealAnalyzerStatus").textContent=`Loaded available application data for ${loan.loanNumber||loan.borrowerName||"this loan"}. Review or correct any field before analyzing.`;
   return true;
 }
+function normalizeRentCastAnalysisResponse(response){
+  const candidates=[
+    response?.data?.data,
+    response?.data,
+    response?.result?.data,
+    response?.result,
+    response?.payload?.data,
+    response?.payload,
+    response
+  ];
+  let data=candidates.find(value=>value&&typeof value==="object"&&!Array.isArray(value))||{};
+  // Some connector versions wrap the RentCast payload one additional time.
+  if(data.data&&typeof data.data==="object"&&!Array.isArray(data.data)&&
+     !data.comparables&&!data.price&&!data.value)data=data.data;
+  const comparables=Array.isArray(data.comparables)?data.comparables:
+    Array.isArray(data.comps)?data.comps:
+    Array.isArray(data.comparableSales)?data.comparableSales:[];
+  return {...data,comparables};
+}
 function dealAnalysisSections(data,input){
+  data=normalizeRentCastAnalysisResponse(data);
   const asIs=Number(data.price||data.value||0), low=Number(data.priceRangeLow||data.valueRangeLow||0), high=Number(data.priceRangeHigh||data.valueRangeHigh||0);
   const arv=Number(input.arvOverride||0), analysisValue=arv||asIs;
   const dealType=input.dealType||"Purchase";
@@ -2376,7 +2396,8 @@ function createDealPackagePdf(){
 function bcfCompPrice(c){return Number(c.price||c.lastSalePrice||0)}
 function bcfCompSqft(c){return Number(c.squareFootage||0)}
 function bcfSuggestedArv(data,selectedIndexes,input={}){
-  const comps=Array.isArray(data.comparables)?data.comparables:[];
+  data=normalizeRentCastAnalysisResponse(data);
+  const comps=data.comparables;
   const chosen=[...new Set(selectedIndexes||[])];
   const subjectSqft=Number(input.squareFootage||data.squareFootage||data.property?.squareFootage||0);
   const subjectBeds=Number(input.bedrooms||data.bedrooms||data.property?.bedrooms||0);
@@ -2472,7 +2493,9 @@ $("openRedfinBtn")?.addEventListener("click",()=>openPropertySearch('redfin'));
 $("openRealtorBtn")?.addEventListener("click",()=>openPropertySearch('realtor'));
 
 function renderDealAnalysis(data,input,selectedIndexes){
-  const comps=Array.isArray(data.comparables)?data.comparables:[];
+  data=normalizeRentCastAnalysisResponse(data);
+  input=input&&typeof input==="object"?input:{};
+  const comps=data.comparables;
   if(!Array.isArray(selectedIndexes)||!selectedIndexes.length)selectedIndexes=comps.map((_,i)=>i);
   lastDealAnalysis={data,input,selectedIndexes,generatedAt:new Date().toISOString()};
   const calc=bcfSuggestedArv(data,selectedIndexes,input);
@@ -2504,10 +2527,27 @@ function renderDealAnalysis(data,input,selectedIndexes){
   <div class="deal-comps"><h3>Comparable Sales (${comps.length})</h3><table><thead><tr><th>Use for ARV</th><th>Match</th><th>Address</th><th>Sale Price</th><th>Sale Date</th><th>Sq. Ft.</th><th>Price/Sq. Ft.</th><th>Beds/Baths</th><th>Distance</th><th>Review</th></tr></thead><tbody>${comps.map((c,i)=>{const price=bcfCompPrice(c),sf=bcfCompSqft(c),address=c.formattedAddress||c.addressLine1||c.address||"",subjectSqft=Number(input.squareFootage||data.squareFootage||data.property?.squareFootage||0),sizeRatio=subjectSqft&&sf?Math.min(subjectSqft,sf)/Math.max(subjectSqft,sf):.7,distance=Number(c.distance||1),score=sizeRatio*(1/(1+distance));const match=score>=.62?'Excellent':score>=.42?'Good':'Weak';return `<tr><td><input class="deal-comp-select" data-index="${i}" type="checkbox" ${selectedIndexes.includes(i)?'checked':''}></td><td><b>${match}</b></td><td>${esc(address)}</td><td>${currency0(price)}</td><td>${esc(c.listedDate||c.lastSaleDate||c.removedDate||"").slice(0,10)}</td><td>${esc(c.squareFootage||"")}</td><td>${price&&sf?currency0(price/sf):''}</td><td>${esc(c.bedrooms||"")} / ${esc(c.bathrooms||"")}</td><td>${c.distance?Number(c.distance).toFixed(2)+" mi":""}</td><td><button type="button" onclick='openCompSearch("zillow",${JSON.stringify(address)})'>Zillow</button> <button type="button" onclick='openCompSearch("redfin",${JSON.stringify(address)})'>Redfin</button> <button type="button" onclick='openCompSearch("realtor",${JSON.stringify(address)})'>Realtor</button></td></tr>`}).join("")||'<tr><td colspan="10">No comparable sales were returned.</td></tr>'}</tbody></table></div>`;
 }
 async function analyzeDeal(){
-  const address=$("dealAddress").value.trim();if(!address)return alert("Enter the complete property address.");
-  const input={dealType:selectedDealType(),address,squareFootage:$("dealSquareFootage").value,bedrooms:$("dealBedrooms").value,bathrooms:$("dealBathrooms").value,loanAmount:$("dealLoanAmount").value,purchasePrice:$("dealPurchasePrice").value,rehabBudget:$("dealRehabBudget").value,arvOverride:$("dealArvOverride").value,closingCosts:$("dealClosingCosts").value,sellingCostPct:$("dealSellingCostPct").value};
+  const address=String($("dealAddress")?.value||"").trim();
+  if(!address)return alert("Enter the complete property address.");
+  const input={dealType:selectedDealType(),address,squareFootage:$("dealSquareFootage")?.value||"",bedrooms:$("dealBedrooms")?.value||"",bathrooms:$("dealBathrooms")?.value||"",loanAmount:$("dealLoanAmount")?.value||"",purchasePrice:$("dealPurchasePrice")?.value||"",rehabBudget:$("dealRehabBudget")?.value||"",arvOverride:$("dealArvOverride")?.value||"",closingCosts:$("dealClosingCosts")?.value||"",sellingCostPct:$("dealSellingCostPct")?.value||"8"};
   const b=$("analyzeDealBtn"),status=$("dealAnalyzerStatus");
-  try{b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";const out=await cloudCall("rentcastAnalyze",{address});renderDealAnalysis(out.data,input);status.textContent="Analysis complete.";}catch(e){status.textContent="";alert(e.message);}finally{b.disabled=false;b.textContent="Analyze Deal";}
+  try{
+    b.disabled=true;b.textContent="Analyzing...";status.textContent="Pulling property data and comparable sales...";
+    const response=await cloudCall("rentcastAnalyze",{address});
+    const data=normalizeRentCastAnalysisResponse(response);
+    const hasValue=Number(data.price||data.value||0)>0;
+    if(!hasValue&&!data.comparables.length){
+      throw new Error("RentCast returned no valuation or comparable sales for this address. Confirm the complete address and try again.");
+    }
+    renderDealAnalysis(data,input);
+    status.textContent=data.comparables.length
+      ?`Analysis complete — ${data.comparables.length} comparable sales loaded.`
+      :"As-is valuation loaded, but RentCast returned no comparable sales.";
+  }catch(e){
+    console.error("BearCrest Deal Analyzer error",e);
+    status.textContent=`Analysis could not be completed: ${e?.message||"Unexpected response from RentCast."}`;
+    alert(status.textContent);
+  }finally{b.disabled=false;b.textContent="Analyze Deal";}
 }
 $("analyzeDealBtn")?.addEventListener("click",analyzeDeal);
 $("loadDealLoanBtn")?.addEventListener("click",loadLoanIntoDealAnalyzer);

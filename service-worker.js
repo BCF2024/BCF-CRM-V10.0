@@ -1,13 +1,13 @@
-const CACHE_NAME = "bearcrest-crm-v11-2-2";
+const CACHE_NAME = "bearcrest-crm-v12-0-0";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=11.2.2",
-  "./config.js?v=11.2.2",
-  "./app.js?v=11.2.2",
-  "./auth.js?v=11.2.2",
-  "./v11.js?v=11.2.2",
-  "./manifest.json?v=11.2.2",
+  "./styles.css?v=12.0.0",
+  "./config.js?v=12.0.0",
+  "./app.js?v=12.0.0",
+  "./auth.js?v=12.0.0",
+  "./v11.js?v=12.0.0",
+  "./manifest.json?v=12.0.0",
   "./bcf-logo.png"
 ];
 
